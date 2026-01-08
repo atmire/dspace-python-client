@@ -46,19 +46,58 @@ The items API in DSpace 7 does not expose submitter information through:
 
 **Note:** The `get_item_submitter()` method in `dspace_client.core.DSpaceClient` will return `None` for DSpace 7 instances. This is expected behavior.
 
-## Version Detection
+## Version Detection and Compatibility
 
-The DSpaceClient can be configured with specific target versions:
+### Understanding `target_versions`
+
+The `target_versions` parameter in `DSpaceClient` specifies which DSpace versions you want to ensure your code is compatible with. **It does NOT restrict which DSpace server you can connect to.**
+
+**Important clarifications:**
+
+1. **You can connect to any DSpace server** - The client will work against any DSpace instance, regardless of the `target_versions` you specify.
+
+2. **Validation is about code compatibility** - The `target_versions` parameter tells the client to validate that all operations you call are supported in the specified version(s). This helps you write code that works across multiple DSpace versions.
+
+3. **Multiple versions = strictest validation** - When you specify multiple versions, the client ensures that every operation you call works in **ALL** of those versions. If an operation doesn't exist in one of the target versions, the client will raise a `VersionIncompatibilityError` before making the request.
+
+4. **Pre-execution validation** - Validation happens **before** each API call, preventing runtime failures from version incompatibilities.
+
+**Examples:**
 
 ```python
-# Compatible with DSpace 9 only
+# Compatible with DSpace 9 only - will validate operations against 9.0
+# But you can still connect to any DSpace server (7.x, 8.x, 9.x, etc.)
 client = DSpaceClient(base_url, jwt, csrf_token, http_client, target_versions="9.0")
 
-# Compatible with DSpace 7.x
+# Compatible with DSpace 7.x - will validate operations against 7.6
 client = DSpaceClient(base_url, jwt, csrf_token, http_client, target_versions="7.6")
 
-# Compatible with multiple versions
+# Compatible with multiple versions - operations must work in ALL three versions
+# This is the strictest validation mode
 client = DSpaceClient(base_url, jwt, csrf_token, http_client, target_versions=["7.6", "8.0", "9.0"])
+```
+
+**Real-world scenario:**
+```python
+# You're building an application that needs to work with DSpace 7.6, 8.0, and 9.0
+client = DSpaceClient(
+    base_url="https://production-dspace.org",  # This could be any version
+    jwt_token=jwt,
+    csrf_token=csrf,
+    http_client=http_client,
+    target_versions=["7.6", "8.0", "9.0"]  # Ensure code works in all these versions
+)
+
+# This will work - create_community exists in all three versions
+await client.create_community("My Community")
+
+# This will raise VersionIncompatibilityError BEFORE making the request
+# because get_item_submitter only exists in 9.0+, not in 7.6 or 8.0
+try:
+    await client.get_item_submitter(item_uuid)
+except VersionIncompatibilityError as e:
+    print(f"Operation not supported in all target versions: {e}")
+    # You would need to handle this differently for DSpace 7.6/8.0
 ```
 
 ### Automatic Version Detection

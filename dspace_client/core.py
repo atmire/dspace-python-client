@@ -60,10 +60,17 @@ class DSpaceClient:
             jwt_token: JWT bearer token from authentication
             csrf_token: CSRF token for modifying requests (refreshed after login!)
             http_client: Authenticated HTTP client with cookies from auth flow
-            target_versions: DSpace version(s) to be compatible with.
+            target_versions: DSpace version(s) to validate compatibility against.
+                This does NOT restrict which DSpace server you can connect to.
+                Instead, it ensures all operations work in the specified version(s).
+                
                 - "bleeding-edge" (default): Latest main branch from RestContract
                 - "7.0", "8.0", "9.0": Specific stable versions
                 - ["7.6", "8.0", "9.0"]: Multiple versions (validates against ALL)
+                
+                When multiple versions are specified, operations must work in ALL
+                of them. If an operation is not supported in any target version,
+                a VersionIncompatibilityError is raised before the API call.
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries for failed requests
             courtesy_delay: Delay in seconds between API calls (0 for no delay)

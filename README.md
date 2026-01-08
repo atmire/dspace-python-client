@@ -63,6 +63,40 @@ client = DSpaceClient(..., target_versions=["7.6", "8.0", "9.0"])
 client = DSpaceClient(..., target_versions="bleeding-edge")
 ```
 
+### What `target_versions` Means
+
+**Important:** The `target_versions` parameter does **NOT** restrict which DSpace server you can connect to. Instead, it specifies which DSpace versions you want to ensure your code is compatible with.
+
+**Key points:**
+
+1. **You can connect to any DSpace server** - The client will work against any DSpace instance, regardless of the `target_versions` you specify.
+
+2. **Validation is about compatibility** - The `target_versions` parameter tells the client to validate that all operations you call are supported in the specified version(s). This helps you write code that works across multiple DSpace versions.
+
+3. **Multiple versions = strictest validation** - When you specify multiple versions (e.g., `["7.6", "8.0", "9.0"]`), the client ensures that every operation you call works in **ALL** of those versions. This is useful when building applications that need to work across different DSpace installations.
+
+4. **Pre-execution validation** - Before each API call, the client checks if the operation is compatible with your target versions. If not, it raises a `VersionIncompatibilityError` **before** making the request, preventing runtime failures.
+
+**Example:**
+```python
+# This client will validate operations against DSpace 7.6, 8.0, and 9.0
+# But you can still connect to any DSpace server (7.x, 8.x, 9.x, or even bleeding-edge)
+client = DSpaceClient(
+    base_url="https://any-dspace-server.org",  # Can be any DSpace instance
+    jwt_token=jwt,
+    csrf_token=csrf,
+    http_client=http_client,
+    target_versions=["7.6", "8.0", "9.0"]  # Ensures code works in all these versions
+)
+
+# This will work if create_community exists in 7.6, 8.0, AND 9.0
+await client.create_community("My Community")
+
+# This will raise VersionIncompatibilityError if get_item_submitter 
+# doesn't exist in ALL three versions (it only exists in 9.0+)
+await client.get_item_submitter(item_uuid)  # Will fail validation
+```
+
 This ensures:
 - **Compatibility validation** before every API call
 - **Automatic documentation fetching** for target versions

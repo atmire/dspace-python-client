@@ -127,6 +127,10 @@ target_versions="8.0"
 target_versions=["7.6", "8.0", "9.0"]
 ```
 
+**Important:** The `target_versions` parameter does **NOT** restrict which DSpace server you can connect to. It specifies which DSpace versions you want to ensure your code is compatible with. The client will validate that all operations work in the specified version(s) before executing them, but you can still connect to any DSpace server regardless of its version.
+
+When you specify multiple versions, operations must work in **ALL** of them. This helps you write code that works across different DSpace installations.
+
 ## What Happens on First Run
 
 1. **Documentation Fetching**: Client automatically clones DSpace/RestContract repository
