@@ -123,6 +123,19 @@ def generate_csv_data(items_data: List[Dict]) -> str:
 async def main():
     """Generate recent items report with submitter information."""
     
+    # Print script information
+    console.print("\n[bold cyan]Recent Items Report with Submitter Information[/bold cyan]")
+    console.print("[dim]━" * 50 + "[/dim]")
+    console.print("[green]✓ This script is READ-ONLY - no changes will be made to your DSpace repository[/green]")
+    console.print("[green]   - Searches for recently added items[/green]")
+    console.print("[green]   - Retrieves submitter information for each item[/green]")
+    console.print("[green]   - Exports data to CSV format[/green]")
+    console.print("")
+    console.print("[bold]Required Access:[/bold] Admin access is recommended (some items may require admin to view submitter info)")
+    console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
+    console.print("[bold]Note:[/bold] Submitter information endpoint only exists in DSpace 9.0+")
+    console.print("[dim]━" * 50 + "[/dim]\n")
+    
     # Show what versions this script supports
     supported_str = ", ".join(TARGET_VERSIONS)
     

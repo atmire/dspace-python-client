@@ -15,6 +15,24 @@ console = Console()
 async def main():
     """Demonstrate advanced authentication and session management."""
     
+    # Print script information
+    console.print("\n[bold cyan]Advanced Authentication and Session Management Example[/bold cyan]")
+    console.print("[dim]━" * 50 + "[/dim]")
+    console.print("[yellow]⚠️  WARNING: This script WILL CREATE and then DELETE test content in your DSpace repository[/yellow]")
+    console.print("[yellow]   - Creates a test community, collection, and item[/yellow]")
+    console.print("[yellow]   - Demonstrates session validation and cleanup[/yellow]")
+    console.print("[yellow]   - Automatically cleans up created test objects at the end[/yellow]")
+    console.print("")
+    console.print("[bold]Required Access:[/bold] Admin access is required to create and delete communities, collections, and items")
+    console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
+    console.print("[dim]━" * 50 + "[/dim]\n")
+    
+    # Ask for confirmation before proceeding
+    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    if proceed not in ("yes", "y"):
+        console.print("[dim]Script cancelled by user.[/dim]")
+        return
+    
     # Show what versions this script supports
     supported_str = ", ".join(TARGET_VERSIONS)
     

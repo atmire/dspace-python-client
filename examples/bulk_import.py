@@ -15,6 +15,24 @@ console = Console()
 async def main():
     """Demonstrate bulk import with adaptive concurrency."""
     
+    # Print script information
+    console.print("\n[bold cyan]Bulk Import Example with Adaptive Concurrency[/bold cyan]")
+    console.print("[dim]━" * 50 + "[/dim]")
+    console.print("[yellow]⚠️  WARNING: This script WILL CREATE a large amount of content in your DSpace repository[/yellow]")
+    console.print("[yellow]   - Creates a new community and collection[/yellow]")
+    console.print("[yellow]   - Creates 100 items with metadata and bitstreams[/yellow]")
+    console.print("[yellow]   - Uses adaptive concurrency control for optimal performance[/yellow]")
+    console.print("")
+    console.print("[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items")
+    console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
+    console.print("[dim]━" * 50 + "[/dim]\n")
+    
+    # Ask for confirmation before proceeding
+    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    if proceed not in ("yes", "y"):
+        console.print("[dim]Script cancelled by user.[/dim]")
+        return
+    
     # Show what versions this script supports
     supported_str = ", ".join(TARGET_VERSIONS)
     

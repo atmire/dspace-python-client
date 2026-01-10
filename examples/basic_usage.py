@@ -15,6 +15,25 @@ console = Console()
 async def main():
     """Demonstrate basic DSpace client usage."""
     
+    # Print script information
+    console.print("\n[bold cyan]Basic DSpace Client Usage Example[/bold cyan]")
+    console.print("[dim]━" * 50 + "[/dim]")
+    console.print("[yellow]⚠️  WARNING: This script WILL CREATE new content in your DSpace repository[/yellow]")
+    console.print("[yellow]   - Creates a new community[/yellow]")
+    console.print("[yellow]   - Creates a new collection[/yellow]")
+    console.print("[yellow]   - Creates a new item with metadata[/yellow]")
+    console.print("[yellow]   - Creates a bundle and uploads a bitstream[/yellow]")
+    console.print("")
+    console.print("[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items")
+    console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
+    console.print("[dim]━" * 50 + "[/dim]\n")
+    
+    # Ask for confirmation before proceeding
+    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    if proceed not in ("yes", "y"):
+        console.print("[dim]Script cancelled by user.[/dim]")
+        return
+    
     # Show what versions this script supports
     supported_str = ", ".join(TARGET_VERSIONS)
     
