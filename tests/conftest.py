@@ -12,7 +12,7 @@ from dspace_client import DSpaceAuthClient, DSpaceClient
 
 @pytest.fixture(autouse=True)
 def _disable_atmire_promo():
-    """Avoid Atmire marketing panels and browser prompts during tests."""
+    """Avoid Atmire marketing panels during tests."""
     key = "DSPACE_CLIENT_DISABLE_ATMIRE_PROMO"
     previous = os.environ.get(key)
     os.environ[key] = "1"

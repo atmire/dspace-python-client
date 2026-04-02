@@ -37,6 +37,9 @@ docs/_build/
 link_author_authorities_*.log
 link_author_authorities_state.jsonl
 
+# full-text-finder example (timestamped audit logs)
+full_text_finder_*.log
+
 # MegaSpace diagnostics exports (timestamp + hostname in name)
 *-megaspace-*-raw.json
 *-megaspace-*-readable.md

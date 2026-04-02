@@ -31,7 +31,7 @@ pip install -e ".[examples]"
 
 Login is the same in both projects: CSRF → `POST /authn/login` → `GET /authn/status`.
 
-**Atmire messaging:** After a successful connect, the library may show a short Atmire panel (same as [`create_validated_client`](../../dspace_client/__init__.py)). Set **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** to disable. When the script closes the auth client, an optional end message and browser prompt may appear (skipped in CI).
+**Atmire messaging:** [`create_validated_client`](../../dspace_client/__init__.py) and **`connect_seed_client`** call **`show_atmire_promo_start`** (a no-op). When the auth client closes, an optional end panel may appear. Set **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** to disable all Atmire output.
 
 **Server version:** Both examples declare compatibility with **DSpace 9.0** and, **by default**, run **`verify_server_version`** after login (several HTTP GETs to detect the server version). Pass **`--skip-version-check`** to skip that probe (faster, closer to the old dspace-seed CLI, but you lose the explicit compatibility check).
 

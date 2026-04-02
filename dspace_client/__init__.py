@@ -43,7 +43,11 @@ from .concurrency import ConcurrencyController, ConcurrencyConfig
 from .oai import OAIClient
 from .rest_pdf_cache import RestPDFCountCache
 from .attribution import show_script_attribution
-from .promo import is_atmire_promo_disabled, show_atmire_promo_end, show_atmire_promo_start
+from .promo import (
+    is_atmire_promo_disabled,
+    show_atmire_promo_end,
+    show_atmire_promo_start,
+)
 from typing import Union, List, Tuple
 
 
@@ -63,7 +67,7 @@ async def create_validated_client(
     3. Verify server version compatibility
     4. Raise ServerVersionMismatchError if major version mismatch
     5. Print warnings for minor version differences
-    6. Optionally show a short Atmire promotional panel (disable with DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1)
+    6. Optional Atmire thank-you panel when the session ends (disable with DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1)
     
     Args:
         base_url: DSpace server base URL

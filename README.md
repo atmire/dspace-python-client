@@ -20,11 +20,13 @@ pip install dspace-client
 
 ## Atmire promotional messages (optional)
 
-The client can show short **Atmire** messages (rotating copy, with **Rich** hyperlinks where the terminal supports them) **after a successful** [`create_validated_client`](dspace_client/__init__.py) flow, and again when you **[`await auth.close()`](dspace_client/auth.py)** on a session that had an open HTTP client. The **[`examples/seed/seed_client.connect_seed_client`](examples/seed/seed_client.py)** helper also shows the session-start message after login.
+The client can show a **single non-blocking** **Rich** panel when you **[`await auth.close()`](dspace_client/auth.py)** on a session that had an open HTTP client: a thank-you line, a rotating **Did you know** fact, and **https://www.atmire.com/** (where the terminal supports Rich links). There is **no** session-start promotional UI and **no** browser prompt.
 
-To **disable** all promotional output and the optional “open atmire.com” prompt, set the environment variable **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** (or `true` / `yes`). In **CI** (`CI` set), the browser prompt is skipped automatically.
+[`create_validated_client`](dspace_client/__init__.py) does not print Atmire messaging at connect time. The **[`examples/seed/seed_client.connect_seed_client`](examples/seed/seed_client.py)** helper still calls **`show_atmire_promo_start`** for API compatibility; that call is a no-op.
 
-You can call **`show_atmire_promo_start`** / **`show_atmire_promo_end`** from **`dspace_client`** manually if you build the client without those helpers.
+To **disable** all promotional output, set **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** (or `true` / `yes`).
+
+You can call **`show_atmire_promo_end`** from **`dspace_client`** manually if you use a custom auth flow without integrated **`close()`** messaging.
 
 ## Quick Start
 

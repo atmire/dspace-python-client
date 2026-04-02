@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **dspace_client.promo**: Optional **Atmire** session messaging — rotating messages with Rich (clickable URLs in supported terminals) after successful **`create_validated_client`** / **`connect_seed_client`**, and again when **`DSpaceAuthClient.close()`** runs (if a real HTTP client was closed). On an interactive TTY (and when **`CI`** is unset), closing the auth client may prompt to open **https://www.atmire.com/** in the default browser. Disable all promo output with **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`**. Exported: **`show_atmire_promo_start`**, **`show_atmire_promo_end`**, **`is_atmire_promo_disabled`**.
 - **BatchItemCreator** (`create_items_batch`): optional **`on_metrics_sample`** callback — invoked whenever batch progress metrics are printed (every 50 completed items and at the end), with `(completed, total, PerformanceMetrics)` for time-series / degradation reporting.
 - **examples/seed** — **MegaSpace** (`megaspace.py`): declares **DSpace 9.0**; **`verify_server_version`** runs **by default** (use **`--skip-version-check`** to skip); **courtesy delay** between REST calls (prompt default 1.0 s, or **`--courtesy-delay`**); **slow-request** logging (threshold 2 s) with end-of-run table; **Rich** progress for sequential mega-bitstream uploads; optional **diagnostics export** to `YYYY-MM-DD-HH.MM-megaspace-{hostname}-raw.json` and `-readable.md` (UTC time in filename; payload includes config, samples, degradation hints); **`.gitignore`** patterns for those exports.
 - **examples/seed** — **MiniSpace** / **`connect_seed_client`**: target **9.0**, version check on by default, **`--skip-version-check`**; **`connect_seed_client`** accepts **`courtesy_delay`** and **`slow_request_*`** passthrough to **`DSpaceClient`**.
@@ -24,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **dspace_client.promo**: **Session-end only** — one non-blocking Rich panel when **`DSpaceAuthClient.close()`** runs (thank-you line, rotating **Did you know**, **https://www.atmire.com**). Session-start messaging and the session-end **browser** prompt are removed; **`DSPACE_CLIENT_DISABLE_ATMIRE_BROWSER_PROMPT`** and **`is_atmire_browser_prompt_disabled`** are removed. **`show_atmire_promo_start`** remains exported as a no-op for compatibility. Disable all promo output with **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`**.
 - **examples/seed/megaspace.py**: **`--collections`** must be **at least 2** (argparse validation with a clear error). The full MegaSpace scenario assumes two collections (e.g. mega-metadata vs mega-bitstreams owning collections).
 - **docs/API_GOTCHAS.md**: Notes on session refresh behavior and enabling auth diagnostics.
 
