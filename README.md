@@ -120,6 +120,12 @@ pip install -e ".[examples]"
 
 All examples follow the same pattern: they prompt for a base URL, username, and password at runtime, and declare which DSpace versions they support. They will refuse to run against a server that does not match.
 
+Run any example by invoking it with Python from the project root, for example:
+
+```bash
+python examples/advanced_auth.py
+```
+
 Each example's `.py` file starts with a docstring describing its purpose, required DSpace version, and usage. Scripts grouped under a folder (`examples/seed/`, `examples/full-text-finder/`) have their own `README.md` with full usage details.
 
 > [!WARNING]
