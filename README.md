@@ -2,6 +2,43 @@
 
 A comprehensive Python client for the DSpace REST API with version-aware compatibility checking and automatic documentation management.
 
+## Table of Contents
+
+- [Key Features](#key-features)
+- [Important Safety Notice](#important-safety-notice)
+- [Installation](#installation)
+- [Running the Examples](#running-the-examples)
+  - [General Tutorials](#general-tutorials)
+  - [Seed Scenarios](#seed-scenarios)
+  - [Reporting Scripts](#reporting-scripts)
+- [Building with the Library](#building-with-the-library)
+  - [Getting Started](#getting-started)
+  - [Version-First Architecture](#version-first-architecture)
+    - [What `target_versions` Means](#what-target_versions-means)
+    - [Manual Version Validation](#manual-version-validation)
+  - [Documentation Management](#documentation-management)
+  - [API Reference](#api-reference)
+    - [Core Classes](#core-classes)
+    - [Key Methods](#key-methods)
+  - [Recipes](#recipes)
+    - [Counting items with PDF bitstreams (REST)](#counting-items-with-pdf-bitstreams-rest-includes-non-public-items)
+    - [Counting items with PDF via OAI-PMH](#counting-items-with-pdf-via-oai-pmh-no-auth-cacheable)
+  - [Configuration](#configuration)
+    - [Concurrency Control](#concurrency-control)
+    - [Version Compatibility](#version-compatibility)
+  - [Error Handling](#error-handling)
+- [Contributing](#contributing)
+  - [Installation from Source](#installation-from-source)
+  - [Running Examples from Source](#running-examples-from-source)
+  - [Running Tests](#running-tests)
+  - [Code Quality](#code-quality)
+- [Atmire Promotional Messages (Optional)](#atmire-promotional-messages-optional)
+- [License](#license)
+- [Author](#author)
+- [Links](#links)
+
+> This README is organised in two parts. If you just want to **run the bundled examples** against a DSpace server, start with [Running the Examples](#running-the-examples) — many users never need to go further. If you want to **write your own scripts** with the library, continue to [Building with the Library](#building-with-the-library).
+
 ## Key Features
 
 - **Version-first initialization** with automatic documentation fetching
@@ -12,58 +49,76 @@ A comprehensive Python client for the DSpace REST API with version-aware compati
 - **Batch operations** with adaptive concurrency control
 - **Comprehensive error handling** with actionable messages
 
+## Important Safety Notice
+
+Please read this section before running anything — examples or your own scripts — against a real DSpace instance.
+
+> [!WARNING]
+> **Always run against a test or staging server first.**
+> This client can create, modify, and delete communities, collections, items, bitstreams, EPeople, and groups — often in bulk. Batch operations and cleanup flags are irreversible at scale. Verify behaviour on a non-production instance (e.g. [demo.dspace.org](https://demo.dspace.org) or your own staging environment) before pointing any script at a live repository.
+
+> [!WARNING]
+> **If you use AI to generate or modify scripts, you must understand every line before running it.**
+> Large language models readily produce plausible-looking code that deletes the wrong things, silently skips validation, or hits the API in ways that look fine in isolation but misbehave against real data. You are responsible for the effects of any code you run against a DSpace repository. Do not run AI-assisted code — even a small edit to an existing example — unless you can explain what each operation does, have read the DSpace REST contract for the endpoints it touches, and have tested it on a throwaway instance first.
+
+These two rules apply equally to the bundled examples, your own scripts, and anything copied out of the [Recipes](#recipes) section.
+
 ## Installation
 
 ```bash
 pip install dspace-client
 ```
 
-## Atmire promotional messages (optional)
+For full installation details, including source checkouts and virtual environments, see [Contributing → Installation from Source](#installation-from-source).
 
-The client can show a **single non-blocking** **Rich** panel when you **[`await auth.close()`](dspace_client/auth.py)** on a session that had an open HTTP client: a thank-you line, a rotating **Did you know** fact, and **https://www.atmire.com/** (where the terminal supports Rich links). There is **no** session-start promotional UI and **no** browser prompt.
+## Running the Examples
 
-[`create_validated_client`](dspace_client/__init__.py) does not print Atmire messaging at connect time. The **[`examples/seed/seed_client.connect_seed_client`](examples/seed/seed_client.py)** helper still calls **`show_atmire_promo_start`** for API compatibility; that call is a no-op.
+The fastest way to get a feel for what the client can do is to run the scripts in the `examples/` directory against a test DSpace instance. Each example is self-contained and prints what it creates/reads/deletes.
 
-To **disable** all promotional output, set **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** (or `true` / `yes`).
+**Install optional deps for seed scenarios** (PyYAML for `examples/seed/`):
 
-You can call **`show_atmire_promo_end`** from **`dspace_client`** manually if you use a custom auth flow without integrated **`close()`** messaging.
-
-## Quick Start
-
-```python
-import asyncio
-from dspace_client import create_validated_client, ServerVersionMismatchError
-
-# DEVELOPER DECLARES: This script is compatible with DSpace 8.0 and 9.0
-TARGET_VERSIONS = ["8.0", "9.0"]
-
-async def main():
-    # User provides URL at runtime
-    base_url = input("DSpace base URL: ")
-    username = input("Username: ")
-    password = input("Password: ")
-    
-    try:
-        # Authenticate and create client with automatic version validation
-        # Server version will be checked against TARGET_VERSIONS
-        auth, client = await create_validated_client(
-            base_url=base_url,
-            username=username,
-            password=password,
-            target_versions=TARGET_VERSIONS  # Developer-declared versions
-        )
-        
-        # Create a community (validated against target versions)
-        community = await client.create_community("My Community")
-        print(f"Created: {community['uuid']}")
-        
-        await auth.close()
-    except ServerVersionMismatchError as e:
-        print(f"Cannot connect: Server version mismatch - {e}")
-        print(f"This script only works with DSpace versions: {', '.join(TARGET_VERSIONS)}")
+```bash
+pip install -e ".[examples]"
 ```
 
-## Version-First Architecture
+All examples follow the same pattern: they prompt for a base URL, username, and password at runtime, and declare which DSpace versions they support. They will refuse to run against a server that does not match.
+
+> [!WARNING]
+> Re-read the [Important Safety Notice](#important-safety-notice) before pointing any example at a live repository. The seed scenarios in particular create and optionally delete substantial amounts of content.
+
+### General Tutorials
+
+- **`basic_usage.py`** — Short generic CRUD: community, collection, item, bitstream
+- **`bulk_import.py`** — Batch item creation with adaptive concurrency (`BatchItemCreator`)
+- **`advanced_auth.py`** — Session management and error handling
+
+### Seed Scenarios
+
+Located under `examples/seed/`. Inspired by the **dspace-seed** workflow (bundled YAML, no `dspace_seed` package at runtime—only `dspace_client`):
+
+- **`seed/minispace.py`** — One community → collection → item → bitstream; declares **DSpace 9.0**; **`verify_server_version`** after login **by default** (use **`--skip-version-check`** to skip); optional cascade delete.
+- **`seed/megaspace.py`** — Larger scenario: groups, EPeople, collection READ groups, **mega-metadata** and **mega-bitstreams** stress items, adaptive **`BatchItemCreator`** batch import (the library supports an optional **`on_metrics_sample`** callback on **`create_items_batch`** for time-series metrics), view events, optional cleanup. Requires **at least `--collections 2`** (validated at startup). **MegaSpace** also supports courtesy pacing, slow-request reporting, and optional **JSON/Markdown** diagnostics export — see **`examples/seed/README.md`**.
+
+The large file **`examples/seed/seedpacks/default.yml`** is copied from dspace-seed; sync it manually if the upstream pack changes.
+
+### Reporting Scripts
+
+Read-only scripts for inspecting a repository:
+
+- **`examples/count_items_with_pdf_bitstream.py`** — Counts items with at least one PDF bitstream via the authenticated REST API (includes non-public items). Supports resumable caching.
+- **`examples/count_items_with_pdf_bitstream_oai.py`** — Same count via unauthenticated OAI-PMH harvesting, suitable for very large or slow repositories. Cached in CSV so runs can resume.
+
+The underlying library calls used by these scripts are documented in [Recipes](#recipes).
+
+## Building with the Library
+
+This section is for developers writing their own scripts against the library. If you only want to run the bundled examples, you can skip it.
+
+### Getting Started
+
+For a minimal, runnable walkthrough — declaring target versions, authenticating, and creating your first community/collection/item — see **[QUICKSTART.md](QUICKSTART.md)**. The rest of this section covers the architecture, API surface, and library conventions that QUICKSTART references.
+
+### Version-First Architecture
 
 The client requires you to specify target DSpace version(s) at initialization:
 
@@ -78,7 +133,7 @@ client = DSpaceClient(..., target_versions=["7.6", "8.0", "9.0"])
 client = DSpaceClient(..., target_versions="bleeding-edge")
 ```
 
-### What `target_versions` Means
+#### What `target_versions` Means
 
 **Important:** The `target_versions` parameter restricts which DSpace servers you can connect to based on version compatibility rules.
 
@@ -121,7 +176,7 @@ except ServerVersionMismatchError as e:
     print(f"This script only works with DSpace versions: {', '.join(TARGET_VERSIONS)}")
 ```
 
-**Manual Version Validation:**
+#### Manual Version Validation
 
 If you create the client manually, call `verify_server_version()` after initialization:
 
@@ -157,7 +212,7 @@ This ensures:
 - **Automatic documentation fetching** for target versions
 - **Clear error messages** for version incompatibilities
 
-## Documentation Management
+### Documentation Management
 
 The client automatically manages DSpace REST API documentation:
 
@@ -185,41 +240,16 @@ dspace-docs status
 
 If a version was fetched recently, `dspace-docs fetch <version>` may reuse the cache until it is older than 24 hours (same logic as the client’s automatic fetch).
 
-## Examples
+### API Reference
 
-See the `examples/` directory for comprehensive examples.
-
-**Install optional deps for seed scenarios** (PyYAML for `examples/seed/`):
-
-```bash
-pip install -e ".[examples]"
-```
-
-### General tutorials
-
-- **`basic_usage.py`** - Short generic CRUD: community, collection, item, bitstream
-- **`bulk_import.py`** - Batch item creation with adaptive concurrency (`BatchItemCreator`)
-- **`advanced_auth.py`** - Session management and error handling
-
-### Seed scenarios (`examples/seed/`)
-
-Inspired by the **dspace-seed** workflow (bundled YAML, no `dspace_seed` package at runtime—only `dspace_client`):
-
-- **`seed/minispace.py`** — One community → collection → item → bitstream; declares **DSpace 9.0**; **`verify_server_version`** after login **by default** (use **`--skip-version-check`** to skip); optional cascade delete.
-- **`seed/megaspace.py`** — Larger scenario: groups, EPeople, collection READ groups, **mega-metadata** and **mega-bitstreams** stress items, adaptive **`BatchItemCreator`** batch import (the library supports an optional **`on_metrics_sample`** callback on **`create_items_batch`** for time-series metrics), view events, optional cleanup. Requires **at least `--collections 2`** (validated at startup). **MegaSpace** also supports courtesy pacing, slow-request reporting, and optional **JSON/Markdown** diagnostics export — see **`examples/seed/README.md`**.
-
-The large file **`examples/seed/seedpacks/default.yml`** is copied from dspace-seed; sync it manually if the upstream pack changes.
-
-## API Reference
-
-### Core Classes
+#### Core Classes
 
 - **`DSpaceAuthClient`** - Authentication and session management
 - **`DSpaceClient`** - Main API client with version validation
 - **`BatchItemCreator`** - High-performance bulk operations; **`create_items_batch`** accepts an optional **`on_metrics_sample`** callback (invoked with **`PerformanceMetrics`** when progress is logged, every 50 items and at completion) for benchmarks and degradation analysis
 - **`ConcurrencyController`** - Adaptive concurrency control
 
-### Key Methods
+#### Key Methods
 
 ```python
 # Communities
@@ -259,7 +289,88 @@ await client.create_group(name, description=None)
 await client.add_subgroup_to_group(parent_group_uuid, subgroup_uuid)
 ```
 
-## Error Handling
+### Recipes
+
+#### Counting items with PDF bitstreams (REST, includes non-public items)
+
+To report how many items have at least one bitstream in PDF format (equivalent to a DB count over items with PDF bitstreams), use the **REST API** with authentication so that **all items** (including non-public) are considered. The client pages through discovery (item UUIDs only), then for each item fetches only bundles and bitstreams (with format).
+
+**Caching and resuming:** Use `RestPDFCountCache` so that already-known items are skipped on subsequent runs (items are assumed immutable). Use `force_rerun=True` to re-check everything.
+
+**Slow-request logging:** To identify which endpoints are slow, set `slow_request_threshold_seconds` and `slow_request_callback` on the client; requests exceeding the threshold are also logged at WARNING and can be collected for analysis.
+
+```python
+from dspace_client import create_validated_client, RestPDFCountCache
+
+auth, client = await create_validated_client(base_url=..., username=..., password=...)
+
+cache = RestPDFCountCache(base_url=base_url)  # default dir: ~/.cache/dspace-rest-pdf
+cache.load()
+
+result = await client.count_items_with_pdf_bitstream(
+    page_size=100,
+    delay_between_pages=1.0,
+    cache=cache,
+    force_rerun=False,  # use cache; set True to re-check all
+)
+cache.save()
+print(f"Items with ≥1 PDF: {result['count']} (of {result['total_items_processed']} processed)")
+```
+
+To log and inspect slow requests, pass `slow_request_threshold_seconds` and `slow_request_callback` into `create_validated_client(..., **client_kwargs)`; the example script does this and prints a table of slow requests at the end.
+
+Example script: `examples/count_items_with_pdf_bitstream.py`. Set `DSPACE_REST_PDF_CACHE_DIR` to override the cache directory.
+
+#### Counting items with PDF via OAI-PMH (no auth, cacheable)
+
+For large or slow repositories, you can count items with PDF using the **OAI-PMH** endpoint at `{base_url}/server/oai/request`. No authentication is required. The client harvests `ListRecords` with `metadataPrefix=oai_dc` and infers PDF from `<dc:format>application/pdf</dc:format>`. Results can be stored in a **persistent CSV cache** so resumed runs skip already-seen items; incremental harvest (from `last_until`) is supported.
+
+```python
+from dspace_client.oai import OAIClient, OAIPDFCountCache, iterate_oai_dc_records
+
+base_url = "https://your-dspace.edu"
+cache = OAIPDFCountCache(base_url=base_url)  # default: ~/.cache/dspace-oai-pdf
+cache.load()
+
+async with OAIClient(base_url=base_url) as client:
+    async for parsed in iterate_oai_dc_records(client, from_=cache.last_until):
+        cache.update(parsed["identifier"], parsed["datestamp"], parsed["has_pdf"])
+cache.save(last_until=max_datestamp)
+total, with_pdf = cache.totals()
+```
+
+Example script: `examples/count_items_with_pdf_bitstream_oai.py`. Set `DSPACE_OAI_CACHE_DIR` to override the cache directory.
+
+### Configuration
+
+#### Concurrency Control
+
+```python
+from dspace_client import ConcurrencyConfig
+
+config = ConcurrencyConfig(
+    initial=8,           # Starting concurrency
+    max_concurrency=32,  # Maximum concurrent operations
+    min_concurrency=2,   # Minimum concurrent operations
+)
+
+batch_creator = BatchItemCreator(client, config)
+```
+
+#### Version Compatibility
+
+```python
+# Check compatibility report
+report = client.validator.get_compatibility_report()
+print(f"create_community supported in: {report['create_community']}")
+
+# Check incompatible operations
+incompatible = client.validator.get_incompatible_operations()
+if incompatible:
+    print(f"Incompatible operations: {incompatible}")
+```
+
+### Error Handling
 
 The client provides comprehensive error handling:
 
@@ -293,86 +404,7 @@ except AuthenticationError as e:
     print(f"Authentication failed: {e}")
 ```
 
-### Counting items with PDF bitstreams (REST, includes non-public items)
-
-To report how many items have at least one bitstream in PDF format (equivalent to a DB count over items with PDF bitstreams), use the **REST API** with authentication so that **all items** (including non-public) are considered. The client pages through discovery (item UUIDs only), then for each item fetches only bundles and bitstreams (with format).
-
-**Caching and resuming:** Use `RestPDFCountCache` so that already-known items are skipped on subsequent runs (items are assumed immutable). Use `force_rerun=True` to re-check everything.
-
-**Slow-request logging:** To identify which endpoints are slow, set `slow_request_threshold_seconds` and `slow_request_callback` on the client; requests exceeding the threshold are also logged at WARNING and can be collected for analysis.
-
-```python
-from dspace_client import create_validated_client, RestPDFCountCache
-
-auth, client = await create_validated_client(base_url=..., username=..., password=...)
-
-cache = RestPDFCountCache(base_url=base_url)  # default dir: ~/.cache/dspace-rest-pdf
-cache.load()
-
-result = await client.count_items_with_pdf_bitstream(
-    page_size=100,
-    delay_between_pages=1.0,
-    cache=cache,
-    force_rerun=False,  # use cache; set True to re-check all
-)
-cache.save()
-print(f"Items with ≥1 PDF: {result['count']} (of {result['total_items_processed']} processed)")
-```
-
-To log and inspect slow requests, pass `slow_request_threshold_seconds` and `slow_request_callback` into `create_validated_client(..., **client_kwargs)`; the example script does this and prints a table of slow requests at the end.
-
-Example script: `examples/count_items_with_pdf_bitstream.py`. Set `DSPACE_REST_PDF_CACHE_DIR` to override the cache directory.
-
-### Counting items with PDF via OAI-PMH (no auth, cacheable)
-
-For large or slow repositories, you can count items with PDF using the **OAI-PMH** endpoint at `{base_url}/server/oai/request`. No authentication is required. The client harvests `ListRecords` with `metadataPrefix=oai_dc` and infers PDF from `<dc:format>application/pdf</dc:format>`. Results can be stored in a **persistent CSV cache** so resumed runs skip already-seen items; incremental harvest (from `last_until`) is supported.
-
-```python
-from dspace_client.oai import OAIClient, OAIPDFCountCache, iterate_oai_dc_records
-
-base_url = "https://your-dspace.edu"
-cache = OAIPDFCountCache(base_url=base_url)  # default: ~/.cache/dspace-oai-pdf
-cache.load()
-
-async with OAIClient(base_url=base_url) as client:
-    async for parsed in iterate_oai_dc_records(client, from_=cache.last_until):
-        cache.update(parsed["identifier"], parsed["datestamp"], parsed["has_pdf"])
-cache.save(last_until=max_datestamp)
-total, with_pdf = cache.totals()
-```
-
-Example script: `examples/count_items_with_pdf_bitstream_oai.py`. Set `DSPACE_OAI_CACHE_DIR` to override the cache directory.
-
-## Configuration
-
-### Concurrency Control
-
-```python
-from dspace_client import ConcurrencyConfig
-
-config = ConcurrencyConfig(
-    initial=8,           # Starting concurrency
-    max_concurrency=32,  # Maximum concurrent operations
-    min_concurrency=2,   # Minimum concurrent operations
-)
-
-batch_creator = BatchItemCreator(client, config)
-```
-
-### Version Compatibility
-
-```python
-# Check compatibility report
-report = client.validator.get_compatibility_report()
-print(f"create_community supported in: {report['create_community']}")
-
-# Check incompatible operations
-incompatible = client.validator.get_incompatible_operations()
-if incompatible:
-    print(f"Incompatible operations: {incompatible}")
-```
-
-## Development
+## Contributing
 
 ### Installation from Source
 
@@ -389,9 +421,9 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### Running Examples
+### Running Examples from Source
 
-When running examples, make sure to use the venv's Python:
+When running examples from a source checkout, make sure to use the venv's Python:
 
 ```bash
 # Option 1: Activate venv first
@@ -414,6 +446,16 @@ pytest tests/
 ruff check .
 mypy dspace_client/
 ```
+
+## Atmire Promotional Messages (Optional)
+
+The client can show a **single non-blocking** **Rich** panel when you **[`await auth.close()`](dspace_client/auth.py)** on a session that had an open HTTP client: a thank-you line, a rotating **Did you know** fact, and **https://www.atmire.com/** (where the terminal supports Rich links). There is **no** session-start promotional UI and **no** browser prompt.
+
+[`create_validated_client`](dspace_client/__init__.py) does not print Atmire messaging at connect time. The **[`examples/seed/seed_client.connect_seed_client`](examples/seed/seed_client.py)** helper still calls **`show_atmire_promo_start`** for API compatibility; that call is a no-op.
+
+To **disable** all promotional output, set **`DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1`** (or `true` / `yes`).
+
+You can call **`show_atmire_promo_end`** from **`dspace_client`** manually if you use a custom auth flow without integrated **`close()`** messaging.
 
 ## License
 
