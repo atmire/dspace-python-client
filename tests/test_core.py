@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
 
 from dspace_client import DSpaceClient
-from dspace_client.exceptions import DSpaceAPIError, VersionIncompatibilityError
+from dspace_client.exceptions import (
+    AuthenticationError,
+    DSpaceAPIError,
+    VersionIncompatibilityError,
+)
 from dspace_client.rest_pdf_cache import RestPDFCountCache
 
 
@@ -47,13 +51,52 @@ class TestDSpaceClient:
     async def test_get_headers_with_csrf(self, mock_dspace_client):
         """Test getting headers with CSRF token."""
         headers = mock_dspace_client._get_headers(include_csrf=True)
-        
+
         expected = {
             "Authorization": "Bearer mock-jwt-token",
             "Content-Type": "application/json",
             "X-XSRF-TOKEN": "mock-csrf-token"
         }
         assert headers == expected
+
+    @pytest.mark.asyncio
+    async def test_get_headers_anonymous_omits_authorization(self, mock_http_client):
+        """Anonymous clients (no JWT) must not emit the Authorization header."""
+        client = DSpaceClient(
+            base_url="https://demo.dspace.org",
+            jwt_token=None,
+            csrf_token=None,
+            http_client=mock_http_client,
+            target_versions="bleeding-edge",
+            courtesy_delay=0.0,
+        )
+
+        headers = client._get_headers(include_csrf=False)
+        assert "Authorization" not in headers
+        assert headers == {"Content-Type": "application/json"}
+
+        # Even when CSRF is requested, an absent token leaves the header off.
+        headers_csrf = client._get_headers(include_csrf=True)
+        assert "X-XSRF-TOKEN" not in headers_csrf
+
+    @pytest.mark.asyncio
+    async def test_request_blocks_mutators_when_anonymous(self, mock_http_client):
+        """Mutating verbs raise AuthenticationError before dispatch on anonymous clients."""
+        client = DSpaceClient(
+            base_url="https://demo.dspace.org",
+            jwt_token=None,
+            csrf_token=None,
+            http_client=mock_http_client,
+            target_versions="bleeding-edge",
+            courtesy_delay=0.0,
+        )
+
+        for method in ("POST", "PUT", "PATCH", "DELETE"):
+            with pytest.raises(AuthenticationError, match="anonymous mode"):
+                await client._request(method, "core/communities")
+
+        # No HTTP call should have been attempted.
+        mock_http_client.request.assert_not_called()
     
     @pytest.mark.asyncio
     async def test_request_success(self, mock_dspace_client):

@@ -18,7 +18,12 @@ from tenacity import (
     retry_if_result,
 )
 
-from .exceptions import DSpaceAPIError, VersionIncompatibilityError, ServerVersionMismatchError
+from .exceptions import (
+    AuthenticationError,
+    DSpaceAPIError,
+    ServerVersionMismatchError,
+    VersionIncompatibilityError,
+)
 from .version import VersionCompatibility
 from .docs import RestContractFetcher
 from .concurrency import AdaptiveDelayController, AdaptiveDelayConfig
@@ -48,9 +53,9 @@ class DSpaceClient:
     def __init__(
         self,
         base_url: str,
-        jwt_token: str,
-        csrf_token: str,
-        http_client: httpx.AsyncClient,
+        jwt_token: Optional[str] = None,
+        csrf_token: Optional[str] = None,
+        http_client: Optional[httpx.AsyncClient] = None,
         target_versions: Union[str, List[str]] = "bleeding-edge",
         timeout: float = 30.0,
         max_retries: int = 3,
@@ -60,17 +65,26 @@ class DSpaceClient:
     ):
         """
         Initialize DSpace API client with version compatibility checking.
-        
-        IMPORTANT: This client MUST receive the authenticated HTTP client from
-        DSpaceAuthClient. Do NOT create a new HTTP client here because:
-        - DSpace cookies must persist (DSPACE-XSRF-COOKIE)
-        - Creating new client = losing cookies = 403 errors
-        
+
+        For authenticated use, pass the authenticated HTTP client from
+        DSpaceAuthClient (cookies must persist; creating a fresh client loses
+        DSPACE-XSRF-COOKIE and yields 403s on modifying requests).
+
+        For anonymous, read-only use, pass ``jwt_token=None`` and
+        ``csrf_token=None`` along with a plain ``httpx.AsyncClient``. Mutating
+        operations (POST/PUT/PATCH/DELETE) raise :class:`AuthenticationError`
+        before any request is dispatched. The :func:`create_anonymous_client`
+        helper wires this up.
+
         Args:
             base_url: DSpace server base URL
-            jwt_token: JWT bearer token from authentication
-            csrf_token: CSRF token for modifying requests (refreshed after login!)
-            http_client: Authenticated HTTP client with cookies from auth flow
+            jwt_token: JWT bearer token from authentication, or ``None`` for
+                anonymous read-only access.
+            csrf_token: CSRF token for modifying requests (refreshed after
+                login!), or ``None`` for anonymous use.
+            http_client: HTTP client. Use the authenticated client from
+                ``DSpaceAuthClient`` for authenticated mode, or a plain
+                ``httpx.AsyncClient`` for anonymous mode.
             target_versions: DSpace version(s) that this client is declared compatible with.
                 This restricts which DSpace servers you can connect to:
                 - Exact version match (e.g., 9.0 == 9.0) → OK
@@ -135,18 +149,33 @@ class DSpaceClient:
     def _get_headers(self, include_csrf: bool = False) -> dict[str, str]:
         """
         Get standard headers for API requests.
-        
+
+        Authorization is omitted in anonymous mode (``jwt_token`` is ``None``);
+        the X-XSRF-TOKEN header is also only set when a CSRF token is present.
+
         Args:
             include_csrf: Whether to include X-XSRF-TOKEN header
         """
-        headers = {
-            "Authorization": f"Bearer {self.jwt_token}",
-            "Content-Type": "application/json",
-        }
-        if include_csrf:
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self.jwt_token:
+            headers["Authorization"] = f"Bearer {self.jwt_token}"
+        if include_csrf and self.csrf_token:
             headers["X-XSRF-TOKEN"] = self.csrf_token
         return headers
-    
+
+    def _require_auth(self, operation: str) -> None:
+        """Raise AuthenticationError if the client is in anonymous mode.
+
+        Use at the top of any method that bypasses :meth:`_request` to dispatch
+        a mutating request directly via ``self.client``.
+        """
+        if not self.jwt_token:
+            raise AuthenticationError(
+                f"{operation} requires authentication; this client was created "
+                "in anonymous mode. Use create_validated_client() instead of "
+                "create_anonymous_client()."
+            )
+
     @retry(
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=1, max=10),
@@ -172,9 +201,19 @@ class DSpaceClient:
             Response object
         
         Raises:
+            AuthenticationError: If a mutating request is attempted while the
+                client is in anonymous mode (no JWT token was provided).
             DSpaceAPIError: If request fails
             VersionIncompatibilityError: If operation not supported in target versions
         """
+        # STEP 0: Block mutators in anonymous mode before doing any work.
+        if method.upper() in ("POST", "PUT", "PATCH", "DELETE") and not self.jwt_token:
+            raise AuthenticationError(
+                f"{method.upper()} {endpoint} requires authentication; this client "
+                "was created in anonymous mode (no JWT token). Use "
+                "create_validated_client() instead of create_anonymous_client()."
+            )
+
         # STEP 1: Validate operation against target versions
         self.validator.validate_before_call(
             method_name=f"{method.lower()}_{endpoint.split('/')[-1]}",
@@ -443,8 +482,9 @@ class DSpaceClient:
         Returns:
             Created bitstream object
         """
+        self._require_auth("upload_bitstream")
         url = f"{self.base_url}/server/api/core/bundles/{bundle_uuid}/bitstreams"
-        
+
         if metadata is None:
             metadata = {}
         
@@ -675,6 +715,7 @@ class DSpaceClient:
             group_uuid: UUID of the group
             eperson_uuid: UUID of the EPerson to add
         """
+        self._require_auth("add_eperson_to_group")
         url = f"{self.base_url}/server/api/eperson/groups/{group_uuid}/epersons"
         
         try:
@@ -793,6 +834,7 @@ class DSpaceClient:
             parent_group_uuid: UUID of parent group
             subgroup_uuid: UUID of subgroup to add as member
         """
+        self._require_auth("add_subgroup_to_group")
         url = f"{self.base_url}/server/api/eperson/groups/{parent_group_uuid}/subgroups"
         
         try:
@@ -837,8 +879,9 @@ class DSpaceClient:
         Returns:
             Created group object
         """
+        self._require_auth("create_collection_item_read_group")
         payload = {"metadata": {}}
-        
+
         if description:
             payload["metadata"]["dc.description"] = [
                 {
@@ -848,7 +891,7 @@ class DSpaceClient:
                     "confidence": -1
                 }
             ]
-        
+
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/itemReadGroup"
         
         try:
@@ -893,8 +936,9 @@ class DSpaceClient:
         Returns:
             Created group object
         """
+        self._require_auth("create_collection_bitstream_read_group")
         payload = {"metadata": {}}
-        
+
         if description:
             payload["metadata"]["dc.description"] = [
                 {
@@ -904,7 +948,7 @@ class DSpaceClient:
                     "confidence": -1
                 }
             ]
-        
+
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/bitstreamReadGroup"
         
         try:

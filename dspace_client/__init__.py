@@ -36,6 +36,8 @@ Example:
             print(f"This script only works with DSpace versions: {', '.join(TARGET_VERSIONS)}")
 """
 
+import httpx
+
 from .auth import DSpaceAuthClient
 from .core import DSpaceClient
 from .batch import BatchItemCreator
@@ -122,6 +124,68 @@ async def create_validated_client(
     return auth, client
 
 
+async def create_anonymous_client(
+    base_url: str,
+    target_versions: Union[str, List[str]] = "bleeding-edge",
+    **client_kwargs,
+) -> Tuple[httpx.AsyncClient, DSpaceClient]:
+    """Build a DSpaceClient for anonymous, read-only access.
+
+    This is the read-only sibling of :func:`create_validated_client`. It
+    creates a fresh ``httpx.AsyncClient`` (no authentication, no cookies),
+    instantiates :class:`DSpaceClient` with ``jwt_token=None`` and
+    ``csrf_token=None``, and verifies the server version against
+    ``target_versions``.
+
+    Mutating operations (POST/PUT/PATCH/DELETE) raise
+    :class:`AuthenticationError` before any request is dispatched, so this
+    client is safe to hand to scripts that only read public data.
+
+    The caller owns the returned ``httpx.AsyncClient`` and must close it,
+    typically via ``await http.aclose()`` in a ``finally`` block (mirrors
+    ``await auth.close()`` in the authenticated path).
+
+    Args:
+        base_url: DSpace server base URL.
+        target_versions: DSpace version(s) the client should be compatible
+            with. See :func:`create_validated_client` for value semantics.
+        **client_kwargs: Additional keyword arguments forwarded to
+            :class:`DSpaceClient` (e.g. ``timeout``, ``courtesy_delay``,
+            ``slow_request_threshold_seconds``, ``slow_request_callback``).
+
+    Returns:
+        Tuple of (httpx.AsyncClient, DSpaceClient).
+
+    Raises:
+        ServerVersionMismatchError: If the server's major version does not
+            match ``target_versions``.
+
+    Example:
+        from dspace_client import create_anonymous_client
+
+        http, client = await create_anonymous_client(
+            base_url="https://demo.dspace.org",
+            target_versions=["7.6", "8.0", "9.0"],
+        )
+        try:
+            results = await client.search_items(query="dc.type:\"Journal article\"")
+        finally:
+            await http.aclose()
+    """
+    timeout = client_kwargs.pop("timeout", 30.0)
+    http = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+    client = DSpaceClient(
+        base_url=base_url,
+        jwt_token=None,
+        csrf_token=None,
+        http_client=http,
+        target_versions=target_versions,
+        **client_kwargs,
+    )
+    await client.verify_server_version(raise_on_mismatch=True)
+    return http, client
+
+
 from .exceptions import (
     DSpaceClientError,
     AuthenticationError,
@@ -154,6 +218,7 @@ __all__ = [
     "OAIError",
     # Helper functions
     "create_validated_client",
+    "create_anonymous_client",
     # Script attribution
     "show_script_attribution",
     # Optional Atmire promo (also controlled by DSPACE_CLIENT_DISABLE_ATMIRE_PROMO)
