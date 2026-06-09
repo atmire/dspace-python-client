@@ -46,7 +46,7 @@ client = DSpaceClient(
 
 You can also manage documentation manually using the CLI:
 
-**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source venv/bin/activate`). Run from the **project root** so docs land under `docs/dspace-rest-api/{version}/`.
+**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\activate` on Windows). Run from the **project root** so docs land under `docs/dspace-rest-api/{version}/`.
 
 ```bash
 # First-time (or missing cache): clone RestContract for a version

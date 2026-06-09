@@ -4,9 +4,9 @@ Thank you for contributing to the DSpace Python client.
 
 ## Setup
 
+Create and activate a virtual environment (see [README → Installing](README.md#installing) for OS-specific commands), then:
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate
 pip install --upgrade pip
 pip install -e ".[dev]"
 ```

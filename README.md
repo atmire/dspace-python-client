@@ -72,7 +72,7 @@ These two rules apply equally to the bundled examples, your own scripts, and any
 
 ### Prerequisites
 
-- **Python 3.11 or higher** (check with `python3 --version`)
+- **Python 3.11 or higher** (check with `python3 --version` on macOS/Linux, or `py --version` on Windows)
 - **Git** - also required at runtime, because the client automatically fetches the DSpace REST API docs from GitHub using `git`
 - **pip 21.3 or newer** (bundled with recent Python releases). `pip install -e .` uses PEP 660 editable installs, which need at least pip 21.3. If you hit errors during the install step below, run `pip install --upgrade pip` inside the activated venv and retry.
 
@@ -97,12 +97,27 @@ cd path/to/dspace-python-client
 
 ### Installing
 
-From inside the project folder, create a virtual environment, upgrade pip (to satisfy the 21.3+ requirement), and install the client:
+From inside the project folder, create a virtual environment, upgrade pip (to satisfy the 21.3+ requirement), and install the client. Steps follow the [Python packaging guide](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments); use the block that matches your OS.
+
+**macOS / Linux**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install --upgrade pip
+python3 -m venv .venv
+source .venv/bin/activate
+which python   # should end in .venv/bin/python
+python3 -m pip install --upgrade pip
+python3 -m pip --version
+pip install -e .
+```
+
+**Windows** (Command Prompt or PowerShell)
+
+```bat
+py -m venv .venv
+.venv\Scripts\activate
+where python   # should end in .venv\Scripts\python
+py -m pip install --upgrade pip
+py -m pip --version
 pip install -e .
 ```
 
@@ -276,7 +291,7 @@ The client automatically manages DSpace REST API documentation:
 - **Version-specific branches** from DSpace/RestContract repository
 - **CLI tools** for manual management
 
-**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source venv/bin/activate`). Run these from the **project root** so documentation is stored under `docs/dspace-rest-api/{version}/` (paths are relative to the current working directory).
+**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\activate` on Windows). Run these from the **project root** so documentation is stored under `docs/dspace-rest-api/{version}/` (paths are relative to the current working directory).
 
 ```bash
 # First-time (or missing cache): clone the RestContract docs for a given API version
@@ -469,15 +484,11 @@ except AuthenticationError as e:
 ```bash
 git clone https://git.atmire.com/scripts/dspace-python-client.git
 cd dspace-python-client
+```
 
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+Then create a virtual environment and install (see [Installing](#installing) above for OS-specific commands). After activation:
 
-# Upgrade pip (pip install -e . requires pip >= 21.3)
-pip install --upgrade pip
-
-# Install dependencies
+```bash
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -486,13 +497,26 @@ pip install -e .
 
 When running examples from a source checkout, make sure to use the venv's Python:
 
+**macOS / Linux**
+
 ```bash
 # Option 1: Activate venv first
-source venv/bin/activate
+source .venv/bin/activate
 python examples/recent_items_with_submitters.py
 
 # Option 2: Use venv Python directly
-./venv/bin/python examples/recent_items_with_submitters.py
+./.venv/bin/python examples/recent_items_with_submitters.py
+```
+
+**Windows**
+
+```bat
+REM Option 1: Activate venv first
+.venv\Scripts\activate
+python examples/recent_items_with_submitters.py
+
+REM Option 2: Use venv Python directly
+.venv\Scripts\python examples/recent_items_with_submitters.py
 ```
 
 ### Running Tests

@@ -16,12 +16,25 @@ git clone https://git.atmire.com/scripts/dspace-python-client.git
 cd dspace-python-client
 ```
 
-or by unpacking a zip archive of the project and `cd`-ing into the unpacked folder. Then, from inside the project folder:
+or by unpacking a zip archive of the project and `cd`-ing into the unpacked folder. Then, from inside the project folder, create a virtual environment and install (see the [Python packaging guide](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#create-and-use-virtual-environments) for details):
+
+**macOS / Linux**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install --upgrade pip   # ensures pip >= 21.3 for the editable install below
+python3 -m venv .venv
+source .venv/bin/activate
+which python   # should end in .venv/bin/python
+python3 -m pip install --upgrade pip
+pip install -e .
+```
+
+**Windows**
+
+```bat
+py -m venv .venv
+.venv\Scripts\activate
+where python   # should end in .venv\Scripts\python
+py -m pip install --upgrade pip
 pip install -e .
 ```
 
@@ -213,7 +226,7 @@ if incompatible:
 
 ### Documentation Management
 
-**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source venv/bin/activate`).
+**Note:** The `dspace-docs` command is available after installing the package. If using a virtual environment, activate it first (`source .venv/bin/activate` on macOS/Linux, `.venv\Scripts\activate` on Windows).
 
 ```bash
 # First-time: download docs for a version (e.g. from project root)
