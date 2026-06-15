@@ -162,10 +162,11 @@ Each example's `.py` file starts with a docstring describing its purpose, requir
 ### Data Modification
 
 - **`delete_item.py`** - Delete a single item with a retype-to-confirm safeguard (re-type the item's `dc.title`, or `DELETE` if the title is empty). DSpace 7.6 and 10.0
-- **`link_author_authorities.py`** - Interactive linking of free-text author metadata to records already in this repository's local SOLR authority core. Item / Repository / ORCID / Name modes; exact or fuzzy matching; timestamped log files. Does not query the public ORCID registry.
+- **`link_author_authorities.py`** - Interactive linking of free-text author metadata to records already in this repository's local SOLR authority core. Item / Repository / ORCID / Name modes; exact or fuzzy matching; timestamped log files. Does not query the public ORCID registry. See **`examples/link_author_authorities/README.md`** for modes and detailed fuzzy-matching rules.
 
 ### Larger Workflows (folder-based)
 
+- **`examples/link_author_authorities/`** - Link unlinked `dc.contributor.author` values to local ORCID authorities (Item / Repository / ORCID / Name modes). See **`examples/link_author_authorities/README.md`** for fuzzy-matching behaviour, discovery variants, and log interpretation.
 - **`examples/full-text-finder/`** - Find open-access PDFs (Unpaywall → OpenAlex → OpenAIRE → CORE) for items with a DOI but no PDF in the ORIGINAL bundle, optionally upload. See **`examples/full-text-finder/README.md`** for setup, modes, and prompts.
 - **`examples/seed/`** - dspace-seed-style scenarios (**MiniSpace**, **MegaSpace**) for filling a repository with communities, collections, items, bitstreams, EPeople, groups, and stats. See **`examples/seed/README.md`**. MiniSpace declares **DSpace 9.0 and 10.0** and runs `verify_server_version` by default. MegaSpace requires `--collections 2` or more and supports the **`on_metrics_sample`** callback on `create_items_batch` for time-series metrics. The large file **`examples/seed/seedpacks/default.yml`** is copied from dspace-seed; sync it manually if the upstream pack changes.
 

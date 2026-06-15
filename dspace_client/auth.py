@@ -299,18 +299,19 @@ class DSpaceAuthClient:
                 },
             )
 
-            console.print(f"[dim]← Status: {response.status_code}[/dim]")
+            if response.status_code == 200:
+                console.print(f"[dim]← Status: {response.status_code}[/dim]")
 
             if response.status_code != 200:
                 self._log_login_failure(response)
-                console.print("[red]Login failed![/red]")
-                console.print("[red]Response headers:[/red]")
-                for key, value in response.headers.items():
-                    console.print(f"  {key}: {value}")
-                console.print("[red]Response body:[/red]")
-                console.print(response.text[:500])
+                if response.status_code in (401, 403):
+                    raise AuthenticationError(
+                        "Invalid username or password.",
+                        status_code=response.status_code,
+                    )
                 raise AuthenticationError(
-                    f"Login failed with status {response.status_code}: {response.text}"
+                    f"Login failed with status {response.status_code}.",
+                    status_code=response.status_code,
                 )
 
             self._apply_csrf_from_response(response)

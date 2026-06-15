@@ -16,7 +16,7 @@ from orcid import (  # noqa: E402
     normalize_orcid_identifier,
     orcid_hyphenated_from_compact,
 )
-from scoring import fuzzy_match_author  # noqa: E402
+from scoring import author_search_variants, fuzzy_match_author  # noqa: E402
 
 
 @pytest.mark.parametrize(
@@ -119,7 +119,29 @@ def test_extract_orcid_detail_other_information_person():
         ("Bert, Bogaerts", "Other, Person", False),
         # Deduped identical comma parts (single variant)
         ("Smith, Smith", "Smith, Smith", True),
+        # Compound surname + initials (spacing variant only when matching on initial)
+        ("De Eyto, E", "de Eyto, Elvira", True),
+        ("de Eyto, E.", "de Eyto, Elvira", True),
+        ("DeEyto, E", "de Eyto, Elvira", True),
+        ("deEyto, E.", "de Eyto, Elvira", True),
+        # Compound surname spacing variant with full first name
+        ("DeEyto, Elvira", "de Eyto, Elvira", True),
+        # Different initial / person
+        ("DeEyto, M", "de Eyto, Elvira", False),
     ],
 )
 def test_fuzzy_match_author_name_order_and_regression(item_author, authority_name, expected):
     assert fuzzy_match_author(item_author, authority_name) is expected
+
+
+def test_author_search_variants_de_eyto():
+    variants = author_search_variants("de Eyto, Elvira")
+    lowered = {v.casefold() for v in variants}
+    assert "de eyto, elvira" in lowered
+    assert "deeyto" in lowered
+    assert "deeyto, elvira" in lowered
+    assert "de eyto, e" in lowered
+    assert "de eyto, e." in lowered
+    assert "deeyto, e" in lowered
+    assert "deeyto, e." in lowered
+    assert "de eyto" in lowered

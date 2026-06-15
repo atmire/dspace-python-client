@@ -267,8 +267,11 @@ class TestDSpaceAuthClient:
         mock_client.post.return_value = mock_response
         auth.client = mock_client
 
-        with pytest.raises(AuthenticationError, match="Login failed"):
+        with pytest.raises(AuthenticationError, match="Invalid username or password") as exc_info:
             await auth.login("testuser", "wrongpass")
+
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.credential_failure is True
 
     @pytest.mark.asyncio
     async def test_verify_authentication_success(self):

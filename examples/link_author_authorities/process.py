@@ -13,6 +13,7 @@ from orcid import extract_orcid_from_entry, fetch_entry_detail
 from scoring import (
     AUTHOR_FIELD,
     _parse_family_first,
+    author_search_variants,
     fuzzy_match_author,
     get_unlinked_authors,
     normalize_name,
@@ -151,38 +152,44 @@ async def discover_item_uuids_by_author(
 ) -> list[str]:
     """
     Discover item UUIDs that have the given author (Discovery API author filter).
+
     Uses the documented f.author=<value>,contains filter per search-endpoint.md.
+    Searches multiple spelling variants (e.g. "de Eyto, Elvira", "DeEyto, E") and
+    deduplicates results.
     """
+    seen_uuids: set[str] = set()
     uuids: list[str] = []
-    page = 0
-    while True:
-        results = await _throttled_call(
-            auth,
-            client,
-            username,
-            password,
-            throttle,
-            lambda: client.search_items(
-                query="*",
-                filters={"author": (author_name.strip(), "contains")},
-                sort="dc.date.accessioned,desc",
-                page=page,
-                size=page_size,
-            ),
-        )
-        emb = results.get("_embedded") or {}
-        search_result = emb.get("searchResult") or emb.get("searchResults") or {}
-        objects = (search_result.get("_embedded") or {}).get("objects", [])
-        if not objects:
-            break
-        for obj in objects:
-            indexable = (obj.get("_embedded") or {}).get("indexableObject", {})
-            uuid_val = indexable.get("uuid")
-            if uuid_val:
-                uuids.append(uuid_val)
-        if len(objects) < page_size:
-            break
-        page += 1
+    for search_term in author_search_variants(author_name):
+        page = 0
+        while True:
+            results = await _throttled_call(
+                auth,
+                client,
+                username,
+                password,
+                throttle,
+                lambda term=search_term: client.search_items(
+                    query="*",
+                    filters={"author": (term.strip(), "contains")},
+                    sort="dc.date.accessioned,desc",
+                    page=page,
+                    size=page_size,
+                ),
+            )
+            emb = results.get("_embedded") or {}
+            search_result = emb.get("searchResult") or emb.get("searchResults") or {}
+            objects = (search_result.get("_embedded") or {}).get("objects", [])
+            if not objects:
+                break
+            for obj in objects:
+                indexable = (obj.get("_embedded") or {}).get("indexableObject", {})
+                uuid_val = indexable.get("uuid")
+                if uuid_val and uuid_val not in seen_uuids:
+                    seen_uuids.add(uuid_val)
+                    uuids.append(uuid_val)
+            if len(objects) < page_size:
+                break
+            page += 1
     return uuids
 
 
@@ -204,7 +211,8 @@ async def process_item(
     Process one item: find unlinked authors, match to local authority, optionally prompt, PATCH.
     use_fuzzy: if True, allow abbreviated first names (e.g. "Smith, J." matches "Smith, John").
     target_authority: if set, (authority_uuid, display_name) to link matching unlinked authors to
-        without vocabulary lookup or prompts; only unlinked authors that fuzzy-match display_name are linked.
+        without vocabulary lookup; only unlinked authors that fuzzy-match display_name are linked.
+        When auto_link_single is False, each match is confirmed interactively.
     filter_author_name: if set, only process unlinked authors that fuzzy-match this name (for Name mode without ORCID).
     Returns (linked_count, skipped_user, no_match_count).
     """
@@ -274,7 +282,40 @@ async def process_item(
                     f"authority_display={authority_display_name!r}",
                 )
                 continue
-            # Match: link to the fixed authority without vocabulary lookup or prompts
+            if not auto_link_single:
+                detail_preview = await fetch_entry_detail(
+                    client, vocabulary_name, authority_uuid
+                )
+                orcid_preview = extract_orcid_from_entry(
+                    {"authority": authority_uuid, "metadata": {}}, detail_preview
+                )
+                lines = [
+                    f"Author (item): [bold]{author_value}[/bold]",
+                    f"Authority display: [bold]{authority_display_name}[/bold]",
+                    f"Authority UUID: [bold]{authority_uuid}[/bold]",
+                ]
+                if orcid_preview:
+                    lines.append(
+                        f"ORCID: [link={orcid_preview}]{orcid_preview}[/link]"
+                    )
+                console.print(
+                    Panel(
+                        "\n".join(lines),
+                        title="Link this author to the above authority?",
+                        border_style="cyan",
+                    )
+                )
+                answer = console.input("[bold]Link? (y/n)[/bold]: ").strip().lower()
+                if answer not in ("y", "yes"):
+                    console.print("[dim]Skipped by user.[/dim]")
+                    skipped_user += 1
+                    _log(
+                        log_file,
+                        f"SKIP item_uuid={item_uuid} title={title!r} uris={uris_str!r} "
+                        f"author={author_value!r} authority={authority_uuid} "
+                        f"reason=user_declined",
+                    )
+                    continue
             patch_value = {
                 "value": author_value,
                 "language": language,

@@ -227,6 +227,7 @@ async def create_anonymous_client(
     return http, client
 
 
+from .credentials import prompt_and_authenticate
 from .exceptions import (
     AuthenticationError,
     DSpaceAPIError,
@@ -261,6 +262,7 @@ __all__ = [
     "create_validated_client",
     "create_anonymous_client",
     "managed_client",
+    "prompt_and_authenticate",
     # Script attribution
     "show_script_attribution",
     # Optional Atmire promo (also controlled by DSPACE_CLIENT_DISABLE_ATMIRE_PROMO)

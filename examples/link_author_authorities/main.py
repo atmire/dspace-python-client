@@ -34,6 +34,7 @@ from dspace_client import (
     AuthenticationError,
     DSpaceAuthClient,
     DSpaceClient,
+    prompt_and_authenticate,
     show_script_attribution,
 )
 from dspace_client.throttle import ThrottleConfig, ThrottleController
@@ -127,9 +128,15 @@ async def main() -> None:
     # --- Authenticate and create client ---
     auth = DSpaceAuthClient(base_url)
     auth.show_atmire_promo = True
-    jwt, status = await auth.authenticate(username, password)
-    if not jwt:
-        console.print("[red]Authentication failed.[/red]")
+    try:
+        jwt, status = await prompt_and_authenticate(
+            auth,
+            username,
+            password,
+            console=console,
+        )
+    except AuthenticationError as e:
+        console.print(f"[red]{e}[/red]")
         await auth.close()
         return
 

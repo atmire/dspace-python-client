@@ -9,6 +9,15 @@ class DSpaceClientError(Exception):
 class AuthenticationError(DSpaceClientError):
     """Raised when authentication fails."""
 
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+    @property
+    def credential_failure(self) -> bool:
+        """True when the failure is likely wrong username/password (HTTP 401 or 403)."""
+        return self.status_code in (401, 403)
+
 
 class DSpaceAPIError(DSpaceClientError):
     """Raised when DSpace API returns an error.

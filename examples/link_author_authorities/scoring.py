@@ -54,6 +54,78 @@ def _normalize_initials(s: str) -> str:
     return cleaned
 
 
+def _family_name_compact(family: str) -> str:
+    """Family name with internal spaces removed, e.g. 'de eyto' -> 'deeyto'."""
+    return normalize_name(family).replace(" ", "")
+
+
+def _families_match(item_family: str, auth_family: str) -> bool:
+    """True if family names match exactly or differ only by internal spaces."""
+    if item_family.lower() == auth_family.lower():
+        return True
+    return _family_name_compact(item_family) == _family_name_compact(auth_family)
+
+
+def _first_names_match_exact(item_first: str, auth_first: str) -> bool:
+    return normalize_name(item_first).lower() == normalize_name(auth_first).lower()
+
+
+def _first_names_match_initials(item_first: str, auth_first: str) -> bool:
+    return _normalize_initials(item_first) == _initials(auth_first)
+
+
+def author_search_variants(authority_display_name: str) -> list[str]:
+    """
+    Build discovery author-contains filter terms for alternate metadata spellings.
+
+    From e.g. "de Eyto, Elvira" also searches "DeEyto", "de Eyto, E", "DeEyto, E.",
+    and the family name alone.
+    """
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def add(value: str) -> None:
+        v = value.strip()
+        if not v:
+            return
+        key = v.casefold()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(v)
+
+    raw = authority_display_name.strip()
+    if not raw:
+        return out
+
+    add(raw)
+    if "," not in raw:
+        compact = "".join(raw.split())
+        if compact.casefold() != raw.casefold():
+            add(compact)
+        return out
+
+    raw_family, raw_first = (part.strip() for part in raw.split(",", 1))
+    family_compact = "".join(raw_family.split())
+    families = [raw_family]
+    if family_compact.casefold() != raw_family.casefold():
+        families.append(family_compact)
+        add(family_compact)
+        if raw_first:
+            add(f"{family_compact}, {raw_first}")
+
+    add(raw_family)
+
+    initials = _initials(normalize_name(raw_first)) if raw_first else ""
+    if initials:
+        letter = initials.split()[0]
+        for family in families:
+            add(f"{family}, {letter}")
+            add(f"{family}, {letter}.")
+
+    return out
+
+
 def _item_family_first_variants(item_author: str) -> list[tuple[str, str]]:
     """
     (family, first) interpretations for an item author string.
@@ -84,19 +156,17 @@ def _match_family_first_parts(
     """True if item (family, first) matches authority (family, first); allows initials on item."""
     if not item_family or not auth_family:
         return False
-    if item_family.lower() != auth_family.lower():
-        return False
     if not item_first and not auth_first:
-        return True
+        return _families_match(item_family, auth_family)
     if not item_first:
-        return True  # item has no first name, family match only
+        return _families_match(item_family, auth_family)
     if not auth_first:
         return False
-    if normalize_name(item_first).lower() == normalize_name(auth_first).lower():
-        return True
-    item_initials = _normalize_initials(item_first)
-    auth_initials = _initials(auth_first)
-    return item_initials == auth_initials
+    if _first_names_match_exact(item_first, auth_first):
+        return _families_match(item_family, auth_family)
+    if _first_names_match_initials(item_first, auth_first):
+        return _families_match(item_family, auth_family)
+    return False
 
 
 def fuzzy_match_author(item_author: str, authority_name: str) -> bool:
@@ -106,8 +176,8 @@ def fuzzy_match_author(item_author: str, authority_name: str) -> bool:
     E.g. "Smith, J." matches "Smith, John"; "Doe, J. M." matches "Doe, Jane Marie".
     Authority display names are parsed as Family, First. Item strings with a comma also
     try First, Family so "Bert, Bogaerts" matches "Bogaerts, Bert". Family name must match
-    exactly (after normalize); first name matches if exact or item's first is initials of
-    authority's given name.
+    after normalize, or with internal spaces removed (e.g. "DeEyto" matches "de Eyto").
+    First name matches if exact or item's first is initials of authority's given name.
     """
     auth_family, auth_first = _parse_family_first(authority_name)
     if not auth_family:
