@@ -100,7 +100,7 @@ class RestContractFetcher:
             stderr=asyncio.subprocess.PIPE,
         )
         try:
-            stdout, stderr = await asyncio.wait_for(
+            _stdout, stderr = await asyncio.wait_for(
                 result.communicate(),
                 timeout=GIT_TIMEOUT_SECONDS,
             )
@@ -314,7 +314,7 @@ def cli_main():
         table.add_column("Branch", style="blue")
         table.add_column("Last Update", style="dim")
 
-        for version in fetcher.VERSION_MAPPING.keys():
+        for version in fetcher.VERSION_MAPPING:
             status = fetcher.get_version_status(version)
             table.add_row(
                 version,
@@ -364,7 +364,7 @@ def cli_main():
 
         console.print("[bold]DSpace REST API Documentation Status:[/bold]")
 
-        for version in fetcher.VERSION_MAPPING.keys():
+        for version in fetcher.VERSION_MAPPING:
             status = fetcher.get_version_status(version)
             console.print(f"\n[bold]{version}:[/bold]")
             console.print(f"  Status: {status.get('status', 'unknown')}")

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
+from defusedxml.common import DefusedXmlException
+from defusedxml.ElementTree import fromstring as safe_fromstring
 from dspace_candidates import normalize_doi_string
 from rate_limit import HostThrottle
 from url_validator import UrlValidationResult, verify_full_text_url
@@ -235,8 +237,10 @@ async def get_openaire_authorization(
 
 def _openaire_candidate_urls(xml_text: str) -> list[str]:
     try:
-        root = ET.fromstring(xml_text)
-    except ET.ParseError:
+        # Remote XML from the OpenAIRE API: parse defensively, as dspace_client.oai does.
+        # DefusedXmlException covers entity-expansion attacks, which are not ParseErrors.
+        root = safe_fromstring(xml_text)
+    except (ET.ParseError, DefusedXmlException):
         return []
     urls: list[str] = []
     for el in root.iter():

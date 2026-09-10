@@ -275,6 +275,13 @@ class DSpaceClient:
             with attempt:
                 return await _dispatch()
 
+        # Unreachable: AsyncRetrying(reraise=True) re-raises the last error rather than
+        # letting the loop finish. Without it the function would implicitly return None
+        # and every caller would fail later on `response.json()` with an opaque
+        # AttributeError instead of the real cause.
+        msg = f"Retry loop exhausted without a response for {method} {endpoint}"
+        raise DSpaceAPIError(msg)
+
     # ========== Communities ==========
 
     async def create_community(

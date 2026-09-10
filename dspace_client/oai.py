@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Self, TypedDict
 
 import httpx
 from defusedxml.ElementTree import fromstring as safe_fromstring
@@ -202,7 +202,7 @@ class OAIClient:
             await self._client.aclose()
             self._client = None
 
-    async def __aenter__(self) -> "OAIClient":
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args: object) -> None:

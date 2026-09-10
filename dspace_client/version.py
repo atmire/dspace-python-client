@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from .exceptions import VersionIncompatibilityError
 from .versions import SUPPORTED_VERSIONS as _SUPPORTED_VERSIONS
@@ -67,7 +68,7 @@ class VersionCompatibility:
 
     # Method compatibility matrix
     # Each method lists the minimum version that supports it
-    COMPATIBILITY = {
+    COMPATIBILITY: ClassVar[dict[str, list[str]]] = {
         # Core CRUD operations (available in all versions)
         "create_community": ["7.0+"],
         "delete_community": ["7.0+"],
@@ -110,8 +111,8 @@ class VersionCompatibility:
         "get_vocabulary_entry_detail": ["7.0+"],
         "get_eperson": ["7.0+"],
 
-        # Future methods might be version-specific
-        # "create_workflow_item": ["8.0+"],  # Example of version-specific method
+        # Version-specific methods are expressed by raising the floor, e.g. a method
+        # only available from DSpace 8 onwards would be listed as ["8.0+"].
     }
 
     def __init__(self, target_versions: str | list[str], docs_fetcher=None):

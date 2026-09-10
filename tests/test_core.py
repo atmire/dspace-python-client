@@ -121,7 +121,7 @@ class TestDSpaceClient:
         mock_response.headers = {"Content-Type": "application/json"}
         mock_dspace_client.client.request.return_value = mock_response
 
-        with pytest.raises(DSpaceAPIError, match="GET.*failed with status 400"):
+        with pytest.raises(DSpaceAPIError, match=r"GET.*failed with status 400"):
             await mock_dspace_client._request(
                 "GET", "core/communities", method_name="create_community"
             )

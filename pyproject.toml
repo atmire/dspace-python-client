@@ -89,10 +89,18 @@ ignore = [
 "__init__.py" = ["F401"]
 # Tests legitimately poke at private members, compare against literals, and carry
 # dummy credentials. They are also not a package, by design.
-"tests/**" = ["INP001", "SLF001", "PLR2004", "S105", "S106", "S107", "ARG001", "ARG002"]
+# S314: the XML the tests parse is hardcoded fixture data, not untrusted input.
+"tests/**" = [
+    "INP001", "SLF001", "PLR2004", "S105", "S106", "S107", "ARG001", "ARG002", "S314",
+]
 # Examples are standalone scripts, not a package: they use demo credentials against
 # throwaway instances and local naive timestamps for filenames and console output.
-"examples/**" = ["INP001", "PLR2004", "S105", "S106", "DTZ005", "DTZ007", "BLE001"]
+# S110/S112: several examples try a parse and fall through to the next strategy on
+# failure (URL heuristics, ORCID extraction, skipping corrupt lines in a state file).
+# That is the intended behaviour, and logging each miss would be pure noise.
+"examples/**" = [
+    "INP001", "PLR2004", "S105", "S106", "DTZ005", "DTZ007", "BLE001", "S110", "S112",
+]
 
 [tool.mypy]
 python_version = "3.11"

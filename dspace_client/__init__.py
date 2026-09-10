@@ -39,7 +39,6 @@ Example:
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import List, Optional, Tuple, Union
 
 import httpx
 
@@ -115,7 +114,7 @@ async def create_validated_client(
     """
     timeout = client_kwargs.pop("timeout", 30.0)
     auth = DSpaceAuthClient(base_url, timeout=timeout)
-    jwt, status = await auth.authenticate(username, password)
+    jwt, _status = await auth.authenticate(username, password)
 
     client = DSpaceClient(
         base_url=base_url,
@@ -241,7 +240,7 @@ __version__ = "0.1.0"
 __author__ = "Bram Luyten"
 __email__ = "bram@atmire.com"
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by category deliberately; more readable than sorted
     # Main client classes
     "DSpaceAuthClient",
     "DSpaceClient",

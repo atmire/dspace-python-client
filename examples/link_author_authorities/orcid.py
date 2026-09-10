@@ -5,10 +5,10 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
+from session import _throttled_call, console
+
 from dspace_client import DSpaceAuthClient, DSpaceClient
 from dspace_client.throttle import ThrottleController
-
-from session import _throttled_call, console
 
 _ORCID_HYPHENATED = re.compile(
     r"(\d{4}-\d{4}-\d{4}-\d{3}[\dXx])",
@@ -119,7 +119,7 @@ def normalize_orcid_identifier(raw: str) -> str | None:
     url_candidate = s
     if not re.match(r"^[a-z][a-z0-9+.-]*://", s, re.IGNORECASE):
         low = s.lower()
-        if low.startswith("www.orcid.org/") or low.startswith("orcid.org/"):
+        if low.startswith(("www.orcid.org/", "orcid.org/")):
             url_candidate = "https://" + s
 
     if "://" in url_candidate:

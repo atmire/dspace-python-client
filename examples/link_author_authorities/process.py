@@ -4,12 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from rich.panel import Panel
-
-from dspace_client import AuthenticationError, DSpaceAuthClient, DSpaceClient
-from dspace_client.throttle import ThrottleController
-
 from orcid import extract_orcid_from_entry, fetch_entry_detail
+from rich.panel import Panel
 from scoring import (
     AUTHOR_FIELD,
     _parse_family_first,
@@ -19,6 +15,9 @@ from scoring import (
     normalize_name,
 )
 from session import _throttled_call, console
+
+from dspace_client import AuthenticationError, DSpaceAuthClient, DSpaceClient
+from dspace_client.throttle import ThrottleController
 
 CONFIDENCE_LINKED = 600
 

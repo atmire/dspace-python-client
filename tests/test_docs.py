@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from dspace_client.docs import RestContractFetcher, DEFAULT_CACHE_DIR
+from dspace_client.docs import DEFAULT_CACHE_DIR, RestContractFetcher
 from dspace_client.versions import REST_CONTRACT_BRANCHES
 
 

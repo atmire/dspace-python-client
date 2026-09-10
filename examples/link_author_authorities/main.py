@@ -28,17 +28,6 @@ import os
 import sys
 from datetime import datetime
 
-from rich.panel import Panel
-
-from dspace_client import (
-    AuthenticationError,
-    DSpaceAuthClient,
-    DSpaceClient,
-    prompt_and_authenticate,
-    show_script_attribution,
-)
-from dspace_client.throttle import ThrottleConfig, ThrottleController
-
 from orcid import normalize_orcid_identifier, resolve_authority_by_orcid
 from process import (
     _fetch_discovery_page_item_uuids,
@@ -46,6 +35,7 @@ from process import (
     discover_item_uuids_by_author,
     process_item,
 )
+from rich.panel import Panel
 from session import console
 from state import (
     AUTO_CHUNK_THRESHOLD_ENV_VAR,
@@ -60,6 +50,15 @@ from state import (
     _save_repo_checkpoint,
     _should_process_uuid,
 )
+
+from dspace_client import (
+    AuthenticationError,
+    DSpaceAuthClient,
+    DSpaceClient,
+    prompt_and_authenticate,
+    show_script_attribution,
+)
+from dspace_client.throttle import ThrottleConfig, ThrottleController
 
 # Compatible with DSpace 7.x, 8.x, 9.x, 10.x (items PATCH and submission vocabularies)
 TARGET_VERSIONS = ["7.0", "8.0", "9.0", "10.0"]
@@ -129,7 +128,7 @@ async def main() -> None:
     auth = DSpaceAuthClient(base_url)
     auth.show_atmire_promo = True
     try:
-        jwt, status = await prompt_and_authenticate(
+        jwt, _status = await prompt_and_authenticate(
             auth,
             username,
             password,
