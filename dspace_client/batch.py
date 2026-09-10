@@ -142,20 +142,29 @@ class BatchItemCreator:
         """Execute a batch of item specs with concurrency control."""
         async def execute_with_semaphore(spec: tuple[dict[str, Any], str]):
             item_info, collection_uuid = spec
-            async with self.controller.semaphore:
-                start_time = time.time()
-                try:
-                    result = await self._create_single_item_with_bitstream(
-                        item_info=item_info,
-                        collection_uuid=collection_uuid,
-                    )
-                    duration = time.time() - start_time
-                    await self.controller.record_operation(duration, success=True)
-                    return {"success": True, **result}
-                except Exception as e:
-                    duration = time.time() - start_time
-                    await self.controller.record_operation(duration, success=False)
-                    return {"success": False, "error": str(e)}
+            duration = 0.0
+            # Time only the work itself: the wait for a concurrency slot is queueing time,
+            # not server latency, and folding it in would make the controller ramp down in
+            # response to its own throttling.
+            try:
+                async with self.controller.semaphore:
+                    start_time = time.time()
+                    try:
+                        result = await self._create_single_item_with_bitstream(
+                            item_info=item_info,
+                            collection_uuid=collection_uuid,
+                        )
+                    finally:
+                        duration = time.time() - start_time
+                outcome = {"success": True, **result}
+            except Exception as e:
+                outcome = {"success": False, "error": str(e)}
+
+            # Recorded *after* the slot is released. record_operation() may adjust the
+            # concurrency limit, and doing that while still holding a slot is what used to
+            # let a ramp-down wedge the whole batch.
+            await self.controller.record_operation(duration, success=outcome["success"])
+            return outcome
 
         # Execute all tasks concurrently
         return await asyncio.gather(*[execute_with_semaphore(spec) for spec in specs])
