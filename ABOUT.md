@@ -16,9 +16,8 @@
 
 ## Introduction
 
-`dspace-python-client` is a tool available in Atmire's git at
-[https://git.atmire.com/scripts/dspace-python-client](https://git.atmire.com/scripts/dspace-python-client),
-and also published open source in … *(link TBD)*.
+`dspace-python-client` is developed by Atmire and published open source at
+[https://github.com/atmire/dspace-python-client](https://github.com/atmire/dspace-python-client).
 
 It includes a number of powerful examples of what can be achieved when developing
 directly against the DSpace REST API for various actions that read and write data
@@ -59,11 +58,11 @@ upgrade path for SaaS clients.
 **Examples of client SaaS support tickets that led to example scripts in
 `dspace-python-client` and to effective solutions:**
 
-- **Sciensano** — [Link ORCID authorities to items](https://tracker.atmire.com/tickets-sciensano/view-ticket?id=23)
-- **Galway** — [Find full text for metadata-only items that *do* have a DOI](https://tracker.atmire.com/tickets-galway/view-ticket?id=421)
+- **Sciensano** — Link ORCID authorities to items
+- **Galway** — Find full text for metadata-only items that *do* have a DOI
   (first developed in Google Sheets, now also in `dspace-python-client`)
-- **Tilburg** — [Extract item metadata by year](https://tracker.atmire.com/tickets-tilburg/view-ticket?id=453),
-  to cope with the limitation that the CSV exporter has an item limit cap
+- **Tilburg** — Extract item metadata by year, to cope with the limitation that the
+  CSV exporter has an item limit cap
 
 ### 2. Support DSpace Open Source development
 
@@ -91,7 +90,7 @@ content in a DSpace repository, including:
 ## Installation & other technical documentation
 
 See `README.md` at
-[https://git.atmire.com/scripts/dspace-python-client](https://git.atmire.com/scripts/dspace-python-client).
+[https://github.com/atmire/dspace-python-client/blob/main/README.md](https://github.com/atmire/dspace-python-client/blob/main/README.md).
 
 ---
 

@@ -12,7 +12,7 @@ Get up and running with the DSpace Python client in 5 minutes.
 Get the code either by cloning:
 
 ```bash
-git clone https://git.atmire.com/scripts/dspace-python-client.git
+git clone https://github.com/atmire/dspace-python-client.git
 cd dspace-python-client
 ```
 

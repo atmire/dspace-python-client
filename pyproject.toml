@@ -42,10 +42,10 @@ examples = [
 ]
 
 [project.urls]
-Homepage = "https://git.atmire.com/scripts/dspace-python-client"
-Documentation = "https://git.atmire.com/scripts/dspace-python-client/-/blob/main/README.md"
-Repository = "https://git.atmire.com/scripts/dspace-python-client"
-"Bug Tracker" = "https://git.atmire.com/scripts/dspace-python-client/-/issues"
+Homepage = "https://github.com/atmire/dspace-python-client"
+Documentation = "https://github.com/atmire/dspace-python-client/blob/main/README.md"
+Repository = "https://github.com/atmire/dspace-python-client"
+"Bug Tracker" = "https://github.com/atmire/dspace-python-client/issues"
 "DSpace REST Contract" = "https://github.com/DSpace/RestContract"
 
 [project.scripts]
