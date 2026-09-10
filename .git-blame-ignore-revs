@@ -1,0 +1,10 @@
+# Revisions listed here are skipped by `git blame`, so a mechanical change does
+# not appear as the last author of every line it touched.
+#
+# Enable locally with:
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub applies this file automatically in its blame view.
+
+# style: apply ruff format across the codebase (no behaviour change)
+2ef7d7ab893c7ceeb6f18aef342354bafb7c2d5b
