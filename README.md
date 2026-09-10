@@ -83,13 +83,13 @@ Pick whichever is more convenient:
 **Option A: Clone with git**
 
 ```bash
-git clone https://git.atmire.com/scripts/dspace-python-client.git
+git clone https://github.com/atmire/dspace-python-client.git
 cd dspace-python-client
 ```
 
 **Option B: Unpack a zip archive**
 
-If you received the project as a zip file (for example, downloaded from GitLab's download menu or shared with you directly), unzip it and open a terminal inside the unpacked folder:
+If you received the project as a zip file (for example, downloaded from GitHub's “Download ZIP” menu or shared with you directly), unzip it and open a terminal inside the unpacked folder:
 
 ```bash
 cd path/to/dspace-python-client
@@ -483,7 +483,7 @@ except AuthenticationError as e:
 ### Installation from Source
 
 ```bash
-git clone https://git.atmire.com/scripts/dspace-python-client.git
+git clone https://github.com/atmire/dspace-python-client.git
 cd dspace-python-client
 ```
 

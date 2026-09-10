@@ -16,9 +16,8 @@
 
 ## Introduction
 
-`dspace-python-client` is a tool available in Atmire's git at
-[https://git.atmire.com/scripts/dspace-python-client](https://git.atmire.com/scripts/dspace-python-client),
-and also published open source in … *(link TBD)*.
+`dspace-python-client` is developed by Atmire and published open source at
+[https://github.com/atmire/dspace-python-client](https://github.com/atmire/dspace-python-client).
 
 It includes a number of powerful examples of what can be achieved when developing
 directly against the DSpace REST API for various actions that read and write data
@@ -91,7 +90,7 @@ content in a DSpace repository, including:
 ## Installation & other technical documentation
 
 See `README.md` at
-[https://git.atmire.com/scripts/dspace-python-client](https://git.atmire.com/scripts/dspace-python-client).
+[https://github.com/atmire/dspace-python-client/blob/main/README.md](https://github.com/atmire/dspace-python-client/blob/main/README.md).
 
 ---
 
