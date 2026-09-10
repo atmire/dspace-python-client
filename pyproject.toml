@@ -34,7 +34,10 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "respx>=0.21.0",
-    "ruff>=0.4.0",
+    # Pinned to a minor series: ruff's formatter output can change between minor
+    # releases, and CI gates on `ruff format --check`. An unpinned formatter would
+    # let a new ruff release turn the build red without anyone changing code.
+    "ruff>=0.15.8,<0.16",
     "mypy>=1.10.0",
 ]
 examples = [
