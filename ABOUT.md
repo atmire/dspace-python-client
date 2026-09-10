@@ -58,11 +58,11 @@ upgrade path for SaaS clients.
 **Examples of client SaaS support tickets that led to example scripts in
 `dspace-python-client` and to effective solutions:**
 
-- **Sciensano** — [Link ORCID authorities to items](https://tracker.atmire.com/tickets-sciensano/view-ticket?id=23)
-- **Galway** — [Find full text for metadata-only items that *do* have a DOI](https://tracker.atmire.com/tickets-galway/view-ticket?id=421)
+- **Sciensano** — Link ORCID authorities to items
+- **Galway** — Find full text for metadata-only items that *do* have a DOI
   (first developed in Google Sheets, now also in `dspace-python-client`)
-- **Tilburg** — [Extract item metadata by year](https://tracker.atmire.com/tickets-tilburg/view-ticket?id=453),
-  to cope with the limitation that the CSV exporter has an item limit cap
+- **Tilburg** — Extract item metadata by year, to cope with the limitation that the
+  CSV exporter has an item limit cap
 
 ### 2. Support DSpace Open Source development
 
