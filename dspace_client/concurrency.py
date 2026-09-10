@@ -1,6 +1,7 @@
 """Adaptive concurrency (and delay) control for DSpace operations."""
 
 import asyncio
+import contextlib
 import statistics
 import time
 from collections import deque
@@ -35,62 +36,94 @@ class PerformanceMetrics:
 
 
 class AdaptiveSemaphore:
-    """Dynamic semaphore that adjusts concurrency limit based on performance."""
+    """
+    Dynamic semaphore whose concurrency limit can be raised or lowered at any time.
+
+    The limit is a plain integer rather than a fixed pool of permits that has to be
+    shuffled around, so changing it never blocks in either direction:
+
+    - Raising the limit hands slots to queued waiters immediately.
+    - Lowering it needs no action at all. ``release()`` simply stops waking waiters
+      until enough in-flight work has finished for ``_active`` to fall below the new
+      limit. Work already in flight above the new limit is allowed to finish.
+
+    Waiters are served strictly FIFO.
+    """
 
     def __init__(self, config: ConcurrencyConfig):
         self.config = config
-        self._semaphore = asyncio.Semaphore(config.max_concurrency)
-        self._current_limit = config.initial
-        self._held_permits = config.max_concurrency - config.initial
-        self._lock = asyncio.Lock()
-        self._initialized = False
+        self._current_limit = self._clamp(config.initial)
+        self._active = 0
+        self._waiters: deque[asyncio.Future] = deque()
 
-    async def _ensure_initialized(self) -> None:
-        if self._initialized:
-            return
-        async with self._lock:
-            if self._initialized:
-                return
-            for _ in range(self._held_permits):
-                await self._semaphore.acquire()
-            self._initialized = True
-
-    async def acquire(self):
-        """Acquire the semaphore."""
-        await self._ensure_initialized()
-        await self._semaphore.acquire()
-
-    def release(self):
-        """Release the semaphore."""
-        self._semaphore.release()
-
-    async def adjust_limit(self, new_limit: int):
-        """Adjust the semaphore limit."""
-        async with self._lock:
-            new_limit = max(self.config.min_concurrency,
-                          min(self.config.max_concurrency, new_limit))
-
-            if new_limit == self._current_limit:
-                return
-
-            # Calculate difference
-            diff = new_limit - self._current_limit
-
-            if diff > 0:
-                # Increase limit - release more permits
-                for _ in range(diff):
-                    self._semaphore.release()
-            else:
-                # Decrease limit - acquire permits to reduce available
-                for _ in range(-diff):
-                    await self._semaphore.acquire()
-
-            self._current_limit = new_limit
+    def _clamp(self, limit: int) -> int:
+        """Clamp a requested limit to the configured range."""
+        return max(self.config.min_concurrency, min(self.config.max_concurrency, limit))
 
     @property
     def current_limit(self) -> int:
         """Get current concurrency limit."""
         return self._current_limit
+
+    @property
+    def active(self) -> int:
+        """Number of slots currently held."""
+        return self._active
+
+    def _wake_waiters(self) -> None:
+        """Hand slots to queued waiters for as long as the current limit allows."""
+        while self._waiters and self._active < self._current_limit:
+            waiter = self._waiters.popleft()
+            if waiter.done():  # cancelled while queued
+                continue
+            self._active += 1
+            waiter.set_result(True)
+
+    async def acquire(self) -> None:
+        """Acquire a slot, waiting until the current limit allows it."""
+        # Fast path: spare capacity and nobody queued ahead of us (keeps the queue FIFO).
+        if not self._waiters and self._active < self._current_limit:
+            self._active += 1
+            return
+
+        waiter = asyncio.get_running_loop().create_future()
+        self._waiters.append(waiter)
+        try:
+            await waiter
+        except asyncio.CancelledError:
+            if waiter.done() and not waiter.cancelled():
+                # A slot was handed to us but we were cancelled before resuming: pass it on.
+                self._active -= 1
+                self._wake_waiters()
+            else:
+                # Already dequeued if a concurrent wake-up beat the cancellation.
+                with contextlib.suppress(ValueError):
+                    self._waiters.remove(waiter)
+            raise
+
+    def release(self) -> None:
+        """Release a previously acquired slot."""
+        if self._active <= 0:
+            msg = "AdaptiveSemaphore released more times than it was acquired"
+            raise RuntimeError(msg)
+        self._active -= 1
+        self._wake_waiters()
+
+    def set_limit(self, new_limit: int) -> int:
+        """
+        Set the concurrency limit, clamped to the configured range.
+
+        Never blocks. Returns the limit actually applied.
+        """
+        new_limit = self._clamp(new_limit)
+        if new_limit != self._current_limit:
+            self._current_limit = new_limit
+            self._wake_waiters()
+        return self._current_limit
+
+    async def adjust_limit(self, new_limit: int) -> int:
+        """Adjust the semaphore limit. Async alias of :meth:`set_limit`; never blocks."""
+        return self.set_limit(new_limit)
 
     async def __aenter__(self):
         await self.acquire()
@@ -250,6 +283,9 @@ class ConcurrencyController:
         """Record an operation and potentially adjust concurrency."""
         await self.monitor.record_operation(duration, success)
 
+        # Nothing awaited under this lock may block on work that itself needs the lock,
+        # or on a concurrency slot. AdaptiveSemaphore.adjust_limit() is non-blocking for
+        # exactly that reason; keep it that way.
         async with self._lock:
             self.operations_since_adjustment += 1
 
