@@ -27,17 +27,25 @@ async def main():
     # Print script information
     console.print("\n[bold cyan]Advanced Authentication and Session Management Example[/bold cyan]")
     console.print("[dim]━" * 50 + "[/dim]")
-    console.print("[yellow]⚠️  WARNING: This script WILL CREATE and then DELETE test content in your DSpace repository[/yellow]")
+    console.print(
+        "[yellow]⚠️  WARNING: This script WILL CREATE and then DELETE test content in your DSpace repository[/yellow]"
+    )
     console.print("[yellow]   - Creates a test community, collection, and item[/yellow]")
     console.print("[yellow]   - Demonstrates session validation and cleanup[/yellow]")
     console.print("[yellow]   - Automatically cleans up created test objects at the end[/yellow]")
     console.print("")
-    console.print("[bold]Required Access:[/bold] Admin access is required to create and delete communities, collections, and items")
+    console.print(
+        "[bold]Required Access:[/bold] Admin access is required to create and delete communities, collections, and items"
+    )
     console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
     console.print("[dim]━" * 50 + "[/dim]\n")
 
     # Ask for confirmation before proceeding
-    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    proceed = (
+        console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ")
+        .strip()
+        .lower()
+    )
     if proceed not in ("yes", "y"):
         console.print("[dim]Script cancelled by user.[/dim]")
         return
@@ -99,7 +107,9 @@ async def main():
             await client.verify_server_version(raise_on_mismatch=True)
         except ServerVersionMismatchError as e:
             console.print(f"[red]Version mismatch:[/red] {e}")
-            console.print(f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]")
+            console.print(
+                f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]"
+            )
             return
 
         if await auth.is_session_valid():
@@ -113,8 +123,7 @@ async def main():
             print(f"✅ Created community: {community['uuid']}")
 
             collection = await client.create_collection(
-                name="Advanced Auth Collection",
-                parent_community_uuid=community["uuid"]
+                name="Advanced Auth Collection", parent_community_uuid=community["uuid"]
             )
             print(f"✅ Created collection: {collection['uuid']}")
 
@@ -122,9 +131,23 @@ async def main():
                 name="Advanced Auth Item",
                 owning_collection_uuid=collection["uuid"],
                 metadata={
-                    "dc.title": [{"value": "Advanced Auth Item", "language": None, "authority": None, "confidence": -1}],
-                    "dc.description": [{"value": "Created with advanced authentication", "language": None, "authority": None, "confidence": -1}]
-                }
+                    "dc.title": [
+                        {
+                            "value": "Advanced Auth Item",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ],
+                    "dc.description": [
+                        {
+                            "value": "Created with advanced authentication",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ],
+                },
             )
             print(f"✅ Created item: {item['uuid']}")
 

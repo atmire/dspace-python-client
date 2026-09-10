@@ -219,9 +219,7 @@ async def test_create_items_batch_does_not_accumulate_across_runs():
     batch = BatchItemCreator(_mock_client(), config=ConcurrencyConfig(initial=2, max_concurrency=4))
 
     await batch.create_items_batch(["coll-a"], [{"title": "First"}])
-    items, bundles, _bitstreams = await batch.create_items_batch(
-        ["coll-a"], [{"title": "Second"}]
-    )
+    items, bundles, _bitstreams = await batch.create_items_batch(["coll-a"], [{"title": "Second"}])
 
     assert [i["name"] for i in items] == ["Second"]
     assert len(bundles) == 1

@@ -35,7 +35,7 @@ class DSpaceAuthClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
         """
         Initialize auth client.
-        
+
         Args:
             base_url: DSpace server base URL (e.g., https://demo.dspace.org)
             timeout: Request timeout in seconds
@@ -59,12 +59,12 @@ class DSpaceAuthClient:
     async def _ensure_client(self):
         """
         Ensure we have a persistent HTTP client.
-        
+
         CRITICAL: We must use ONE client for the entire auth flow because:
         - DSpace sets DSPACE-XSRF-COOKIE during CSRF request
         - httpx stores cookies in the client instance
         - New client = lost cookies = 403 errors
-        
+
         See API_GOTCHAS.md for details.
         """
         if self.client is None:
@@ -156,7 +156,7 @@ class DSpaceAuthClient:
     async def verify_server(self) -> bool:
         """
         Verify that the DSpace server is reachable.
-        
+
         Returns:
             True if server responds, False otherwise
         """
@@ -170,16 +170,16 @@ class DSpaceAuthClient:
     async def get_csrf_token(self) -> tuple[str, str]:
         """
         Step 1: Get CSRF token from DSpace.
-        
+
         According to CSRF documentation:
         - Server sends token in DSPACE-XSRF-TOKEN header
         - Server sets DSPACE-XSRF-COOKIE cookie
         - Client must send token in X-XSRF-TOKEN header for modifying requests
         - Server compares header value with cookie value
-        
+
         Returns:
             Tuple of (csrf_token, csrf_cookie_value)
-        
+
         Raises:
             AuthenticationError: If CSRF token cannot be obtained
         """
@@ -265,19 +265,19 @@ class DSpaceAuthClient:
     async def login(self, username: str, password: str) -> str:
         """
         Step 2: Login with username and password to get JWT.
-        
+
         According to authentication.md:
         - POST to /api/authn/login with form-encoded user/password
         - Must include X-XSRF-TOKEN header and DSPACE-XSRF-COOKIE cookie
         - Returns JWT in Authorization header
-        
+
         Args:
             username: DSpace admin username
             password: DSpace admin password
-        
+
         Returns:
             JWT bearer token
-        
+
         Raises:
             AuthenticationError: If login fails
         """
@@ -340,10 +340,10 @@ class DSpaceAuthClient:
     async def verify_authentication(self) -> dict:
         """
         Step 3: Verify authentication status.
-        
+
         Returns:
             Status information from DSpace
-        
+
         Raises:
             AuthenticationError: If verification fails
         """
@@ -387,14 +387,14 @@ class DSpaceAuthClient:
     async def authenticate(self, username: str, password: str) -> tuple[str, dict]:
         """
         Complete authentication flow: CSRF → Login → Verify.
-        
+
         Args:
             username: DSpace admin username
             password: DSpace admin password
-        
+
         Returns:
             Tuple of (jwt_token, status_info)
-        
+
         Raises:
             AuthenticationError: If any step fails
         """
@@ -406,16 +406,16 @@ class DSpaceAuthClient:
     async def ensure_session(self, username: str, password: str, force: bool = False) -> str:
         """
         Ensure there is a valid, reasonably fresh authenticated session.
-        
+
         This is designed for long-running jobs:
         - Uses a configurable max session age (default ~25 minutes).
         - Can be forced to re-authenticate unconditionally (e.g. after a 401).
-        
+
         Args:
             username: DSpace admin username
             password: DSpace admin password
             force: If True, always re-authenticate, ignoring cached state.
-        
+
         Returns:
             Current JWT token (possibly refreshed)
         """
@@ -446,7 +446,7 @@ class DSpaceAuthClient:
     async def is_session_valid(self) -> bool:
         """
         Check if the current session (JWT token) is still valid.
-        
+
         Returns:
             True if session is valid, False if expired or invalid
         """

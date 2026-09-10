@@ -97,14 +97,9 @@ async def main():
             "Resume will skip these unless you force rerun.[/dim]"
         )
 
-    force_rerun = (
-        console.input(
-            "[bold cyan]Force rerun (re-check all items, ignore cache)?[/bold cyan] [dim](y/N):[/dim] "
-        )
-        .strip()
-        .lower()
-        in ("y", "yes")
-    )
+    force_rerun = console.input(
+        "[bold cyan]Force rerun (re-check all items, ignore cache)?[/bold cyan] [dim](y/N):[/dim] "
+    ).strip().lower() in ("y", "yes")
     if force_rerun:
         console.print("[dim]→ Force rerun: all items will be re-checked.[/dim]")
 
@@ -163,26 +158,16 @@ async def main():
         def progress_callback(processed: int, with_pdf: int, total: int | None) -> None:
             without_pdf = processed - with_pdf
             delay_str = f"{latest_delay:.2f}s" if latest_delay is not None else "?"
-            page_str = (
-                f"{latest_page_duration:.2f}s"
-                if latest_page_duration is not None
-                else "?"
-            )
-            courtesy_str = (
-                f"{courtesy_delay:.2f}s" if courtesy_delay is not None else "?"
-            )
+            page_str = f"{latest_page_duration:.2f}s" if latest_page_duration is not None else "?"
+            courtesy_str = f"{courtesy_delay:.2f}s" if courtesy_delay is not None else "?"
             description = (
                 f"Items: {processed} | With PDF: {with_pdf} | Without PDF: {without_pdf} "
                 f"| Delay: {delay_str} | Last page: {page_str} | Courtesy: {courtesy_str}"
             )
             if total is not None:
-                progress.update(
-                    task_id, total=total, completed=processed, description=description
-                )
+                progress.update(task_id, total=total, completed=processed, description=description)
             else:
-                progress.update(
-                    task_id, completed=processed, description=description
-                )
+                progress.update(task_id, completed=processed, description=description)
 
         result = await client.count_items_with_pdf_bitstream(
             pdf_format_id=None,
@@ -227,7 +212,9 @@ async def main():
 
     if slow_requests:
         console.print()
-        console.print(f"[bold yellow]Slow requests (>{slow_threshold}s)[/bold yellow] — check for patterns:")
+        console.print(
+            f"[bold yellow]Slow requests (>{slow_threshold}s)[/bold yellow] — check for patterns:"
+        )
         table = Table(show_header=True, header_style="bold")
         table.add_column("Method", style="dim")
         table.add_column("Endpoint", style="dim")

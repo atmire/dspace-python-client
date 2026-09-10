@@ -26,18 +26,26 @@ async def main():
     # Print script information
     console.print("\n[bold cyan]Basic DSpace Client Usage Example[/bold cyan]")
     console.print("[dim]━" * 50 + "[/dim]")
-    console.print("[yellow]⚠️  WARNING: This script WILL CREATE new content in your DSpace repository[/yellow]")
+    console.print(
+        "[yellow]⚠️  WARNING: This script WILL CREATE new content in your DSpace repository[/yellow]"
+    )
     console.print("[yellow]   - Creates a new community[/yellow]")
     console.print("[yellow]   - Creates a new collection[/yellow]")
     console.print("[yellow]   - Creates a new item with metadata[/yellow]")
     console.print("[yellow]   - Creates a bundle and uploads a bitstream[/yellow]")
     console.print("")
-    console.print("[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items")
+    console.print(
+        "[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items"
+    )
     console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
     console.print("[dim]━" * 50 + "[/dim]\n")
 
     # Ask for confirmation before proceeding
-    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    proceed = (
+        console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ")
+        .strip()
+        .lower()
+    )
     if proceed not in ("yes", "y"):
         console.print("[dim]Script cancelled by user.[/dim]")
         return
@@ -81,8 +89,7 @@ async def main():
             print(f"Created: {community['uuid']}")
 
             collection = await client.create_collection(
-                name="My Collection",
-                parent_community_uuid=community["uuid"]
+                name="My Collection", parent_community_uuid=community["uuid"]
             )
             print(f"Created collection: {collection['uuid']}")
 
@@ -90,9 +97,18 @@ async def main():
                 name="My Item",
                 owning_collection_uuid=collection["uuid"],
                 metadata={
-                    "dc.title": [{"value": "My Item", "language": None, "authority": None, "confidence": -1}],
-                    "dc.description": [{"value": "A sample item", "language": None, "authority": None, "confidence": -1}]
-                }
+                    "dc.title": [
+                        {"value": "My Item", "language": None, "authority": None, "confidence": -1}
+                    ],
+                    "dc.description": [
+                        {
+                            "value": "A sample item",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ],
+                },
             )
             print(f"Created item: {item['uuid']}")
 
@@ -105,13 +121,22 @@ async def main():
                 filename="sample.txt",
                 content=sample_content,
                 metadata={
-                    "dc.title": [{"value": "Sample File", "language": None, "authority": None, "confidence": -1}]
-                }
+                    "dc.title": [
+                        {
+                            "value": "Sample File",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
+                },
             )
             print(f"Uploaded bitstream: {bitstream['uuid']}")
     except ServerVersionMismatchError as e:
         console.print(f"[red]Version mismatch:[/red] {e}")
-        console.print(f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]")
+        console.print(
+            f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]"
+        )
         return
 
 

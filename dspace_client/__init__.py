@@ -15,9 +15,9 @@ Example:
     # DEVELOPER DECLARES: This script is compatible with DSpace 8.0 and 9.0
     TARGET_VERSIONS = ["8.0", "9.0"]
     SCRIPT_AUTHORS = "Bram Luyten (Atmire)"
-    
+
     from dspace_client import create_validated_client, ServerVersionMismatchError, show_script_attribution
-    
+
     async def main():
         show_script_attribution(SCRIPT_AUTHORS)
         base_url = input("DSpace base URL: ")
@@ -66,11 +66,11 @@ async def create_validated_client(
     *,
     show_atmire_promo: bool = False,
     fetch_docs: bool = False,
-    **client_kwargs
+    **client_kwargs,
 ) -> tuple[DSpaceAuthClient, DSpaceClient]:
     """
     Authenticate and create DSpaceClient with automatic version validation.
-    
+
     This helper function performs the complete flow:
     1. Authenticate with DSpace server
     2. Create DSpaceClient with specified target_versions
@@ -78,7 +78,7 @@ async def create_validated_client(
     4. Raise ServerVersionMismatchError if major version mismatch
     5. Print warnings for minor version differences
     6. Optional Atmire thank-you panel when the session ends (disable with DSPACE_CLIENT_DISABLE_ATMIRE_PROMO=1)
-    
+
     Args:
         base_url: DSpace server base URL
         username: Username for authentication
@@ -90,24 +90,24 @@ async def create_validated_client(
                         (timeout, max_retries, courtesy_delay, etc.)
         show_atmire_promo: When True, show optional Atmire thank-you panels at session start/end.
         fetch_docs: When True, fetch RestContract documentation for each target version.
-    
+
     Returns:
         Tuple of (auth_client, dspace_client)
-    
+
     Raises:
         AuthenticationError: If authentication fails
         ServerVersionMismatchError: If server version major version doesn't match target_versions
-    
+
     Example:
         from dspace_client import create_validated_client
-        
+
         auth, client = await create_validated_client(
             base_url="https://demo.dspace.org",
             username="admin@example.com",
             password="password",
             target_versions=["8.0", "9.0"]
         )
-        
+
         # Server version will be validated automatically
         # If major version mismatch, ServerVersionMismatchError is raised
         # If minor version difference, warning is printed but connection proceeds

@@ -164,9 +164,11 @@ async def main() -> None:
             console.print(
                 "[yellow]Fuzzy matching may link publications to the wrong ORCID author.[/yellow]"
             )
-            confirm = console.input(
-                "[bold cyan]Continue with fuzzy matching?[/bold cyan] (Yes/No): "
-            ).strip().lower()
+            confirm = (
+                console.input("[bold cyan]Continue with fuzzy matching?[/bold cyan] (Yes/No): ")
+                .strip()
+                .lower()
+            )
             if confirm in ("yes", "y"):
                 use_fuzzy = True
                 break
@@ -175,9 +177,13 @@ async def main() -> None:
         console.print("[red]Please type exactly [bold]Exact[/bold] or [bold]Fuzzy[/bold].[/red]")
 
     # --- 6. Auto-link single unambiguous matches? ---
-    review_ans = console.input(
-        "[bold cyan]Allow automatic linking when there is exactly one local authority match?[/bold cyan] (y/n): "
-    ).strip().lower()
+    review_ans = (
+        console.input(
+            "[bold cyan]Allow automatic linking when there is exactly one local authority match?[/bold cyan] (y/n): "
+        )
+        .strip()
+        .lower()
+    )
     auto_link_single = review_ans in ("y", "yes")
 
     # --- 7. Mode: Item / Repository / ORCID / Name ---
@@ -210,10 +216,14 @@ async def main() -> None:
     repository_resume = False
     max_items_this_run: int | None = None
     if run_mode_key == "repository":
-        mode_input = console.input(
-            "[bold cyan]Run mode[/bold cyan] "
-            "[dim]([N]ew only, [S]ince days, [F]orce all; press Enter for New only):[/dim] "
-        ).strip().lower()
+        mode_input = (
+            console.input(
+                "[bold cyan]Run mode[/bold cyan] "
+                "[dim]([N]ew only, [S]ince days, [F]orce all; press Enter for New only):[/dim] "
+            )
+            .strip()
+            .lower()
+        )
         if mode_input in ("s", "since"):
             run_mode = "since"
             days_str = console.input(
@@ -230,10 +240,14 @@ async def main() -> None:
             run_mode = "new"
             min_age_days = None
 
-        resume_input = console.input(
-            "[bold cyan]Resume from previous repository checkpoint?[/bold cyan] "
-            "[dim](y/n, press Enter for y):[/dim] "
-        ).strip().lower()
+        resume_input = (
+            console.input(
+                "[bold cyan]Resume from previous repository checkpoint?[/bold cyan] "
+                "[dim](y/n, press Enter for y):[/dim] "
+            )
+            .strip()
+            .lower()
+        )
         repository_resume = resume_input not in ("n", "no")
 
         max_items_input = console.input(
@@ -341,9 +355,7 @@ async def main() -> None:
                         page_size=page_size,
                     )
                 except Exception as e:
-                    console.print(
-                        f"[red]Repository discovery failed at page {page}: {e}[/red]"
-                    )
+                    console.print(f"[red]Repository discovery failed at page {page}: {e}[/red]")
                     _log(
                         log_file,
                         f"ERROR repository_discovery_failed page={page} error={e!r}",
@@ -377,9 +389,7 @@ async def main() -> None:
 
                 for uuid in page_uuids:
                     global_seen += 1
-                    if not _should_process_uuid(
-                        uuid, run_mode, attempt_state, now, min_age_days
-                    ):
+                    if not _should_process_uuid(uuid, run_mode, attempt_state, now, min_age_days):
                         console.print(
                             f"[dim]Item {global_seen}: {uuid} – skipped by incremental run mode.[/dim]"
                         )
@@ -405,10 +415,7 @@ async def main() -> None:
                     attempt_state[uuid] = now
                     _append_attempt_state(state_path, uuid, now)
 
-                    if (
-                        max_items_this_run is not None
-                        and items_processed >= max_items_this_run
-                    ):
+                    if max_items_this_run is not None and items_processed >= max_items_this_run:
                         hit_run_limit = True
                         break
 
@@ -536,9 +543,7 @@ async def main() -> None:
                 uuids = await discover_item_uuids_by_author(
                     auth, client, username, password, throttle, name_input
                 )
-                console.print(
-                    f"[cyan]Found {len(uuids)} item(s). Processing each.[/cyan]"
-                )
+                console.print(f"[cyan]Found {len(uuids)} item(s). Processing each.[/cyan]")
                 for i, uuid in enumerate(uuids, 1):
                     console.print(f"[dim]Item {i}/{len(uuids)}: {uuid}[/dim]")
                     linked, skipped, no_match = await process_item(
@@ -564,8 +569,7 @@ async def main() -> None:
     except AuthenticationError as e:
         fatal_auth = True
         console.print(
-            "[red]Fatal authentication error (e.g. CSRF/login refresh failed). "
-            "Aborting run.[/red]"
+            "[red]Fatal authentication error (e.g. CSRF/login refresh failed). Aborting run.[/red]"
         )
         console.print(f"[dim]{e}[/dim]")
     finally:

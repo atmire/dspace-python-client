@@ -28,17 +28,25 @@ async def main():
     # Print script information
     console.print("\n[bold cyan]Bulk Import Example with Adaptive Concurrency[/bold cyan]")
     console.print("[dim]━" * 50 + "[/dim]")
-    console.print("[yellow]⚠️  WARNING: This script WILL CREATE a large amount of content in your DSpace repository[/yellow]")
+    console.print(
+        "[yellow]⚠️  WARNING: This script WILL CREATE a large amount of content in your DSpace repository[/yellow]"
+    )
     console.print("[yellow]   - Creates a new community and collection[/yellow]")
     console.print("[yellow]   - Creates 100 items with metadata and bitstreams[/yellow]")
     console.print("[yellow]   - Uses adaptive concurrency control for optimal performance[/yellow]")
     console.print("")
-    console.print("[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items")
+    console.print(
+        "[bold]Required Access:[/bold] Admin access is required to create communities, collections, and items"
+    )
     console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
     console.print("[dim]━" * 50 + "[/dim]\n")
 
     # Ask for confirmation before proceeding
-    proceed = console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ").strip().lower()
+    proceed = (
+        console.input("[bold yellow]Do you want to continue? (yes/no):[/bold yellow] ")
+        .strip()
+        .lower()
+    )
     if proceed not in ("yes", "y"):
         console.print("[dim]Script cancelled by user.[/dim]")
         return
@@ -79,8 +87,7 @@ async def main():
         ) as (_auth, client):
             community = await client.create_community("Bulk Import Community")
             collection = await client.create_collection(
-                name="Bulk Import Collection",
-                parent_community_uuid=community["uuid"]
+                name="Bulk Import Collection", parent_community_uuid=community["uuid"]
             )
 
             print(f"Created collection: {collection['uuid']}")
@@ -95,22 +102,44 @@ async def main():
 
             item_data = []
             for i in range(100):
-                item_data.append({
-                    "title": f"Bulk Item {i+1}",
-                    "metadata": {
-                        "dc.title": [{"value": f"Bulk Item {i+1}", "language": None, "authority": None, "confidence": -1}],
-                        "dc.description": [{"value": f"Description for bulk item {i+1}", "language": None, "authority": None, "confidence": -1}],
-                        "dc.subject": [{"value": f"Subject {i+1}", "language": None, "authority": None, "confidence": -1}]
-                    },
-                    "content": f"Sample content for item {i+1}".encode(),
-                    "filename": f"item_{i+1}.txt"
-                })
+                item_data.append(
+                    {
+                        "title": f"Bulk Item {i + 1}",
+                        "metadata": {
+                            "dc.title": [
+                                {
+                                    "value": f"Bulk Item {i + 1}",
+                                    "language": None,
+                                    "authority": None,
+                                    "confidence": -1,
+                                }
+                            ],
+                            "dc.description": [
+                                {
+                                    "value": f"Description for bulk item {i + 1}",
+                                    "language": None,
+                                    "authority": None,
+                                    "confidence": -1,
+                                }
+                            ],
+                            "dc.subject": [
+                                {
+                                    "value": f"Subject {i + 1}",
+                                    "language": None,
+                                    "authority": None,
+                                    "confidence": -1,
+                                }
+                            ],
+                        },
+                        "content": f"Sample content for item {i + 1}".encode(),
+                        "filename": f"item_{i + 1}.txt",
+                    }
+                )
 
             print(f"Creating {len(item_data)} items with adaptive concurrency...")
 
             _items, _bundles, _bitstreams = await batch_creator.create_items_batch(
-                collection_uuids=[collection["uuid"]],
-                item_data=item_data
+                collection_uuids=[collection["uuid"]], item_data=item_data
             )
 
             metrics = await batch_creator.get_final_metrics()
@@ -125,7 +154,9 @@ async def main():
             print(f"P95 latency: {metrics.p95_latency:.3f} seconds")
     except ServerVersionMismatchError as e:
         console.print(f"[red]Version mismatch:[/red] {e}")
-        console.print(f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]")
+        console.print(
+            f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]"
+        )
         return
 
 

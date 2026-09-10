@@ -189,7 +189,9 @@ def _render_readable_markdown(payload: dict) -> str:
         lines.append(json.dumps(deg, indent=2))
         lines.append("```")
     else:
-        lines.append("_Not enough `regular_items` samples to compare first vs last (need at least two)._")
+        lines.append(
+            "_Not enough `regular_items` samples to compare first vs last (need at least two)._"
+        )
         lines.append("")
     lines.extend(
         [
@@ -400,9 +402,13 @@ async def run_megaspace(
         created_readers_group_uuid = readers_group["uuid"]
         if pre_existing_readers is None:
             metrics["groups"] = int(metrics["groups"]) + 1
-            console.print(f"  [green]✓[/green] Created MegaSpace Readers: {created_readers_group_uuid}\n")
+            console.print(
+                f"  [green]✓[/green] Created MegaSpace Readers: {created_readers_group_uuid}\n"
+            )
         else:
-            console.print(f"  [green]✓[/green] Using existing MegaSpace Readers: {created_readers_group_uuid}\n")
+            console.print(
+                f"  [green]✓[/green] Using existing MegaSpace Readers: {created_readers_group_uuid}\n"
+            )
 
         console.print(f"[yellow]Creating {num_epeople} EPeople…[/yellow]")
         t_ep = time.perf_counter()
@@ -451,7 +457,9 @@ async def run_megaspace(
         )
         console.print("  [green]✓[/green] EPeople added to readers group\n")
 
-        console.print(f"[yellow]Creating {num_collections} collections with default READ groups…[/yellow]")
+        console.print(
+            f"[yellow]Creating {num_collections} collections with default READ groups…[/yellow]"
+        )
         t_col = time.perf_counter()
         with Progress(
             SpinnerColumn(),
@@ -500,7 +508,9 @@ async def run_megaspace(
                 )
                 metrics["groups"] = int(metrics["groups"]) + 2
 
-                await client.add_subgroup_to_group(item_read_group["uuid"], created_readers_group_uuid)
+                await client.add_subgroup_to_group(
+                    item_read_group["uuid"], created_readers_group_uuid
+                )
                 await client.add_subgroup_to_group(
                     bitstream_read_group["uuid"],
                     created_readers_group_uuid,
@@ -520,7 +530,9 @@ async def run_megaspace(
         if num_collections >= 2 and num_items_per_collection > 0:
             console.print("[yellow]Special test items…[/yellow]")
             mega_meta_title = "Mega-Metadata Test Item: A Study with Extensive Annotations"
-            mega_meta_metadata = build_mega_metadata(factory, seed_pack, mega_meta_title, discipline)
+            mega_meta_metadata = build_mega_metadata(
+                factory, seed_pack, mega_meta_title, discipline
+            )
             mega_meta_item = await client.create_item(
                 name=mega_meta_title,
                 owning_collection_uuid=created_collection_uuids[0],
@@ -572,7 +584,9 @@ async def run_megaspace(
                         await client.upload_bitstream(
                             bundle_uuid=bundle_b["uuid"],
                             filename=fname,
-                            content=factory.generate_sample_pdf_content(f"{mega_bits_title} - {fname}"),
+                            content=factory.generate_sample_pdf_content(
+                                f"{mega_bits_title} - {fname}"
+                            ),
                         )
                         metrics["bitstreams"] = int(metrics["bitstreams"]) + 1
                         progress.update(btask, advance=1)
@@ -636,7 +650,11 @@ async def run_megaspace(
                 console=console,
             ) as progress:
                 ptask = progress.add_task("Items", total=total_regular)
-                created_items, _bundles, created_bitstreams = await batch_creator.create_items_batch(
+                (
+                    created_items,
+                    _bundles,
+                    created_bitstreams,
+                ) = await batch_creator.create_items_batch(
                     collection_uuids=created_collection_uuids,
                     item_data=item_data,
                     progress=progress,
@@ -679,7 +697,9 @@ async def run_megaspace(
                 for i in range(num_item_views):
                     chosen = factory.rng.choices(created_item_uuids, weights=weights, k=1)[0]
                     ref = referrers[i % len(referrers)]
-                    await client.create_item_view(target_uuid=chosen, target_type="item", referrer=ref)
+                    await client.create_item_view(
+                        target_uuid=chosen, target_type="item", referrer=ref
+                    )
                     metrics["item_views"] = int(metrics["item_views"]) + 1
                     progress.update(vtask, advance=1)
                     vdone = i + 1
@@ -731,10 +751,14 @@ async def run_megaspace(
             degradation=diagnostics_payload.get("degradation"),
         )
 
-        save_diag = console.input(
-            "[bold cyan]Save diagnostics[/bold cyan] (JSON + Markdown in current directory)? "
-            "[dim](yes/no, default yes):[/dim] "
-        ).strip().lower()
+        save_diag = (
+            console.input(
+                "[bold cyan]Save diagnostics[/bold cyan] (JSON + Markdown in current directory)? "
+                "[dim](yes/no, default yes):[/dim] "
+            )
+            .strip()
+            .lower()
+        )
         if save_diag in ("", "y", "yes"):
             try:
                 raw_path, md_path = _write_diagnostics_exports(Path.cwd(), diagnostics_payload)
@@ -742,9 +766,13 @@ async def run_megaspace(
             except OSError as exc:
                 console.print(f"[red]Could not save diagnostics: {exc}[/red]")
 
-        cleanup = console.input(
-            "[bold yellow]Delete created EPeople and the community? (yes/no):[/bold yellow] "
-        ).strip().lower()
+        cleanup = (
+            console.input(
+                "[bold yellow]Delete created EPeople and the community? (yes/no):[/bold yellow] "
+            )
+            .strip()
+            .lower()
+        )
         if cleanup not in ("yes", "y"):
             console.print("[cyan]Cleanup skipped. MegaSpace Readers group may remain.[/cyan]")
             return True
@@ -823,11 +851,11 @@ def _print_summary(
 [yellow]Readers group[/yellow] {readers_uuid}{special}
 
 [yellow]Counts[/yellow]
-  EPeople: {metrics['epeople']}
-  Collections: {metrics['collections']}
-  Items: {metrics['items']}
-  Bitstreams: {metrics['bitstreams']}
-  View events: {metrics['item_views']}
+  EPeople: {metrics["epeople"]}
+  Collections: {metrics["collections"]}
+  Items: {metrics["items"]}
+  Bitstreams: {metrics["bitstreams"]}
+  View events: {metrics["item_views"]}
 """
     console.print(Panel(text, title="Done", border_style="green"))
 
@@ -964,8 +992,12 @@ def main() -> None:
         default=2,
         help="Regular items per collection (default: 2)",
     )
-    p.add_argument("--epeople", type=int, default=5, help="Number of EPeople to create (default: 5)")
-    p.add_argument("--item-views", type=int, default=50, dest="item_views", help="View events (default: 50)")
+    p.add_argument(
+        "--epeople", type=int, default=5, help="Number of EPeople to create (default: 5)"
+    )
+    p.add_argument(
+        "--item-views", type=int, default=50, dest="item_views", help="View events (default: 50)"
+    )
     p.add_argument(
         "--mega-bitstreams",
         type=int,

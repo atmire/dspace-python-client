@@ -192,8 +192,10 @@ class TestDSpaceAuthClient:
         auth._last_auth_time = 0.0
         auth.max_session_age_seconds = 60.0
 
-        with patch.object(auth, "authenticate", new_callable=AsyncMock) as mock_auth, \
-             patch.object(auth, "refresh_jwt", new_callable=AsyncMock) as mock_refresh:
+        with (
+            patch.object(auth, "authenticate", new_callable=AsyncMock) as mock_auth,
+            patch.object(auth, "refresh_jwt", new_callable=AsyncMock) as mock_refresh,
+        ):
             mock_refresh.return_value = "refreshed"
             jwt = await auth.ensure_session("user", "pass")
             assert jwt == "refreshed"
@@ -208,8 +210,10 @@ class TestDSpaceAuthClient:
         auth._last_auth_time = 0.0
         auth.max_session_age_seconds = 60.0
 
-        with patch.object(auth, "authenticate", new_callable=AsyncMock) as mock_auth, \
-             patch.object(auth, "refresh_jwt", new_callable=AsyncMock) as mock_refresh:
+        with (
+            patch.object(auth, "authenticate", new_callable=AsyncMock) as mock_auth,
+            patch.object(auth, "refresh_jwt", new_callable=AsyncMock) as mock_refresh,
+        ):
             mock_refresh.side_effect = AuthenticationError("refresh failed")
             mock_auth.return_value = ("from-full-auth", {})
             jwt = await auth.ensure_session("user", "pass")
@@ -282,6 +286,7 @@ class TestDSpaceAuthClient:
         # Mock the client and response
         mock_client = AsyncMock()
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"authenticated": True, "eperson": {"name": "Test User"}}
@@ -316,10 +321,11 @@ class TestDSpaceAuthClient:
         auth = DSpaceAuthClient("https://demo.dspace.org")
 
         # Mock all the methods
-        with patch.object(auth, "get_csrf_token") as mock_csrf, \
-             patch.object(auth, "login") as mock_login, \
-             patch.object(auth, "verify_authentication") as mock_verify:
-
+        with (
+            patch.object(auth, "get_csrf_token") as mock_csrf,
+            patch.object(auth, "login") as mock_login,
+            patch.object(auth, "verify_authentication") as mock_verify,
+        ):
             mock_csrf.return_value = ("test-csrf-token", "test-csrf-token")
             mock_login.return_value = "test-jwt-token"
             mock_verify.return_value = {"authenticated": True}
@@ -341,6 +347,7 @@ class TestDSpaceAuthClient:
         # Mock the client and response
         mock_client = AsyncMock()
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"authenticated": True}

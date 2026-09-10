@@ -35,12 +35,14 @@ def generate_csv_data(items_data: list[dict]) -> str:
 
     # Rows
     for item in items_data:
-        writer.writerow([
-            item["title"],
-            item["date_issued"],
-            item["identifier_pure"],
-            item["identifier_uri"],
-        ])
+        writer.writerow(
+            [
+                item["title"],
+                item["date_issued"],
+                item["identifier_pure"],
+                item["identifier_uri"],
+            ]
+        )
 
     return output.getvalue()
 
@@ -108,16 +110,24 @@ async def main():
             courtesy_delay = float(throttle_input)
 
             if courtesy_delay < 0:
-                console.print("[yellow]⚠️  Invalid value (negative). Using default: 1.0 second[/yellow]")
+                console.print(
+                    "[yellow]⚠️  Invalid value (negative). Using default: 1.0 second[/yellow]"
+                )
                 courtesy_delay = 1.0
             elif courtesy_delay == 0:
                 console.print("[yellow]⚠️  No throttle - maximum speed mode enabled[/yellow]")
             elif courtesy_delay < 0.1:
-                console.print(f"[yellow]⚠️  Very aggressive throttle: {courtesy_delay}s - use with caution[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  Very aggressive throttle: {courtesy_delay}s - use with caution[/yellow]"
+                )
             else:
-                console.print(f"[dim]→ Using throttle: {courtesy_delay} second(s) between API calls[/dim]")
+                console.print(
+                    f"[dim]→ Using throttle: {courtesy_delay} second(s) between API calls[/dim]"
+                )
         except ValueError:
-            console.print(f"[yellow]⚠️  Invalid input '{throttle_input}'. Using default: 1.0 second[/yellow]")
+            console.print(
+                f"[yellow]⚠️  Invalid input '{throttle_input}'. Using default: 1.0 second[/yellow]"
+            )
             courtesy_delay = 1.0
 
     # Create client with version specification
@@ -153,7 +163,6 @@ async def main():
         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         console=console,
     ) as progress:
-
         search_task = progress.add_task("Searching items...", total=None)
 
         while True:
@@ -185,7 +194,12 @@ async def main():
                 else:
                     results = response.json()
 
-                items = results.get("_embedded", {}).get("searchResult", {}).get("_embedded", {}).get("objects", [])
+                items = (
+                    results.get("_embedded", {})
+                    .get("searchResult", {})
+                    .get("_embedded", {})
+                    .get("objects", [])
+                )
 
                 if not items:
                     break  # No more items available
@@ -203,7 +217,9 @@ async def main():
                 # If error and page_size > 10, try reducing it
                 if page_size > 10:
                     page_size = max(10, page_size // 2)
-                    console.print(f"[yellow]⚠️  Error occurred, reducing page size to {page_size}: {e}[/yellow]")
+                    console.print(
+                        f"[yellow]⚠️  Error occurred, reducing page size to {page_size}: {e}[/yellow]"
+                    )
                     # Don't increment page, retry with smaller size
                     continue
                 console.print(f"[red]Error searching items: {e}[/red]")
@@ -247,22 +263,26 @@ async def main():
 
         if has_required_fields:
             # We have the required fields, use what we have (even if identifiers are empty)
-            items_data.append({
-                "title": title,
-                "date_issued": date_issued,
-                "identifier_pure": identifier_pure,
-                "identifier_uri": identifier_uri,
-            })
+            items_data.append(
+                {
+                    "title": title,
+                    "date_issued": date_issued,
+                    "identifier_pure": identifier_pure,
+                    "identifier_uri": identifier_uri,
+                }
+            )
         else:
             # Need to fetch full item details
             items_needing_fetch.append((item_uuid, len(items_data)))
             # Add placeholder that we'll update later
-            items_data.append({
-                "title": title or "",
-                "date_issued": date_issued or "",
-                "identifier_pure": identifier_pure or "",
-                "identifier_uri": identifier_uri or "",
-            })
+            items_data.append(
+                {
+                    "title": title or "",
+                    "date_issued": date_issued or "",
+                    "identifier_pure": identifier_pure or "",
+                    "identifier_uri": identifier_uri or "",
+                }
+            )
 
     # Second pass: fetch items that need full metadata (if any)
     if items_needing_fetch:
@@ -275,8 +295,9 @@ async def main():
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             console=console,
         ) as progress:
-
-            fetch_task = progress.add_task("Fetching item metadata...", total=len(items_needing_fetch))
+            fetch_task = progress.add_task(
+                "Fetching item metadata...", total=len(items_needing_fetch)
+            )
 
             for item_uuid, data_index in items_needing_fetch:
                 try:

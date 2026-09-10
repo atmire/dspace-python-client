@@ -12,6 +12,7 @@ from dataclasses import dataclass
 @dataclass
 class ConcurrencyConfig:
     """Configuration for adaptive concurrency control."""
+
     initial: int = 4  # Balanced start
     min_concurrency: int = 1
     max_concurrency: int = 128
@@ -26,6 +27,7 @@ class ConcurrencyConfig:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for concurrency control."""
+
     throughput: float  # Operations per second
     p95_latency: float  # 95th percentile latency in seconds
     p50_latency: float  # 50th percentile latency in seconds
@@ -200,7 +202,7 @@ class PerformanceMonitor:
             return False
 
         # Get recent metrics
-        recent_times = list(self.operation_times)[-self.config.ramp_up_interval:]
+        recent_times = list(self.operation_times)[-self.config.ramp_up_interval :]
         if len(recent_times) < self.config.ramp_up_interval:
             return False
 
@@ -227,34 +229,35 @@ class PerformanceMonitor:
         recent_timestamps = list(self.operation_timestamps)[-baseline_size:]
 
         # Calculate baseline metrics
-        baseline_p95 = statistics.quantiles(baseline_times, n=20)[18] if len(baseline_times) > 1 else 0
+        baseline_p95 = (
+            statistics.quantiles(baseline_times, n=20)[18] if len(baseline_times) > 1 else 0
+        )
         baseline_span = (
-            baseline_timestamps[-1] - baseline_timestamps[0]
-            if len(baseline_timestamps) > 1
-            else 0
+            baseline_timestamps[-1] - baseline_timestamps[0] if len(baseline_timestamps) > 1 else 0
         )
-        baseline_throughput = (
-            len(baseline_times) / baseline_span if baseline_span > 0 else 0
-        )
+        baseline_throughput = len(baseline_times) / baseline_span if baseline_span > 0 else 0
 
         # Calculate recent metrics
         recent_p95 = statistics.quantiles(recent_times, n=20)[18] if len(recent_times) > 1 else 0
         recent_span = (
-            recent_timestamps[-1] - recent_timestamps[0]
-            if len(recent_timestamps) > 1
-            else 0
+            recent_timestamps[-1] - recent_timestamps[0] if len(recent_timestamps) > 1 else 0
         )
         recent_throughput = len(recent_times) / recent_span if recent_span > 0 else 0
 
         # Check for degradation
         latency_degradation = (recent_p95 - baseline_p95) / baseline_p95 if baseline_p95 > 0 else 0
-        throughput_degradation = (baseline_throughput - recent_throughput) / baseline_throughput if baseline_throughput > 0 else 0
+        throughput_degradation = (
+            (baseline_throughput - recent_throughput) / baseline_throughput
+            if baseline_throughput > 0
+            else 0
+        )
 
         # More conservative: ramp down only if BOTH metrics show significant degradation
         # OR if latency is extremely high (> 3 seconds)
-        return ((latency_degradation > self.config.ramp_down_threshold and
-                throughput_degradation > self.config.ramp_down_threshold) or
-                recent_p95 > 3.0)
+        return (
+            latency_degradation > self.config.ramp_down_threshold
+            and throughput_degradation > self.config.ramp_down_threshold
+        ) or recent_p95 > 3.0
 
 
 class ConcurrencyController:
@@ -291,8 +294,10 @@ class ConcurrencyController:
 
             # Check if we should adjust concurrency
             should_adjust = (
-                self.operations_since_adjustment >= self.config.ramp_up_interval or
-                await self.monitor.should_ramp_down(await self.monitor.get_metrics(self.semaphore.current_limit))
+                self.operations_since_adjustment >= self.config.ramp_up_interval
+                or await self.monitor.should_ramp_down(
+                    await self.monitor.get_metrics(self.semaphore.current_limit)
+                )
             )
 
             if should_adjust:
@@ -307,20 +312,18 @@ class ConcurrencyController:
         # Check if we should ramp down
         if await self.monitor.should_ramp_down(metrics):
             new_limit = max(
-                self.config.min_concurrency,
-                current_limit - self.config.ramp_down_amount
+                self.config.min_concurrency, current_limit - self.config.ramp_down_amount
             )
             await self.semaphore.adjust_limit(new_limit)
             self._notify_adjust(current_limit, new_limit, "latency/throughput degraded")
             return
 
         # Check if we should ramp up
-        if (self.operations_since_adjustment >= self.config.ramp_up_interval and
-            await self.monitor.should_ramp_up()):
-            new_limit = min(
-                self.config.max_concurrency,
-                current_limit + self.config.ramp_up_amount
-            )
+        if (
+            self.operations_since_adjustment >= self.config.ramp_up_interval
+            and await self.monitor.should_ramp_up()
+        ):
+            new_limit = min(self.config.max_concurrency, current_limit + self.config.ramp_up_amount)
             await self.semaphore.adjust_limit(new_limit)
             self._notify_adjust(current_limit, new_limit, "latency healthy")
 

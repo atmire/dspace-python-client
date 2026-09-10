@@ -85,16 +85,16 @@ class DSpaceClient:
                 - Exact version match (e.g., 9.0 == 9.0) → OK
                 - Minor version difference (e.g., 9.0 vs 9.1, same major) → Warning but allowed
                 - Major version difference (e.g., 7.x vs 8.0+) → Connection rejected
-                
+
                 Values:
                 - "bleeding-edge" (default): Latest main branch from RestContract
                 - "7.0", "8.0", "9.0": Specific stable versions
                 - ["7.6", "8.0", "9.0"]: Multiple versions (server must match one)
-                
+
                 After creating the client, call verify_server_version() to validate
                 the server version against target_versions. Consider using
                 create_validated_client() helper function for automatic validation.
-                
+
                 Note: This also ensures all operations work in the specified version(s).
                 If an operation is not supported in any target version, a
                 VersionIncompatibilityError is raised before the API call.
@@ -109,7 +109,7 @@ class DSpaceClient:
         RestContract documentation is not fetched during ``__init__``. Call
         ``await client.docs_fetcher.fetch_version(...)`` explicitly, or pass
         ``fetch_docs=True`` to :func:`create_validated_client`.
-        
+
         Note: Server version validation is NOT performed during ``__init__``. Call
         verify_server_version() after initialization, or use the
         create_validated_client() helper function.
@@ -128,7 +128,9 @@ class DSpaceClient:
         # Initialize version compatibility system
         self.validator = VersionCompatibility(target_versions)
         self.docs_fetcher = RestContractFetcher()
-        self.target_versions = target_versions if isinstance(target_versions, list) else [target_versions]
+        self.target_versions = (
+            target_versions if isinstance(target_versions, list) else [target_versions]
+        )
         #: Last result of :meth:`detect_dspace_version` (also set when called from ``verify_server_version``).
         self._last_detected_server_version: str | None = None
 
@@ -175,17 +177,17 @@ class DSpaceClient:
     ) -> httpx.Response:
         """
         Make an HTTP request to DSpace API with version validation.
-        
+
         Args:
             method: HTTP method (GET, POST, PUT, DELETE)
             endpoint: API endpoint path
             json_data: JSON data for request body
             params: Query parameters
             method_name: Public API method name for version compatibility lookup
-        
+
         Returns:
             Response object
-        
+
         Raises:
             AuthenticationError: If a mutating request is attempted while the
                 client is in anonymous mode (no JWT token was provided).
@@ -292,12 +294,12 @@ class DSpaceClient:
     ) -> dict:
         """
         Create a community.
-        
+
         Args:
             name: Community name
             metadata: Metadata dictionary (e.g., {"dc.title": [{"value": "..."}]})
             parent_uuid: UUID of parent community (for subcommunity)
-        
+
         Returns:
             Created community object
         """
@@ -306,7 +308,9 @@ class DSpaceClient:
 
         # Ensure dc.title is set
         if "dc.title" not in metadata:
-            metadata["dc.title"] = [{"value": name, "language": None, "authority": None, "confidence": -1}]
+            metadata["dc.title"] = [
+                {"value": name, "language": None, "authority": None, "confidence": -1}
+            ]
 
         payload = {
             "name": name,
@@ -317,7 +321,9 @@ class DSpaceClient:
         if parent_uuid:
             endpoint = f"{endpoint}?parent={parent_uuid}"
 
-        response = await self._request("POST", endpoint, json_data=payload, method_name="create_community")
+        response = await self._request(
+            "POST", endpoint, json_data=payload, method_name="create_community"
+        )
         return response.json()
 
     async def delete_community(self, uuid: str) -> None:
@@ -334,12 +340,12 @@ class DSpaceClient:
     ) -> dict:
         """
         Create a collection.
-        
+
         Args:
             name: Collection name
             parent_community_uuid: UUID of parent community
             metadata: Metadata dictionary
-        
+
         Returns:
             Created collection object
         """
@@ -348,7 +354,9 @@ class DSpaceClient:
 
         # Ensure dc.title is set
         if "dc.title" not in metadata:
-            metadata["dc.title"] = [{"value": name, "language": None, "authority": None, "confidence": -1}]
+            metadata["dc.title"] = [
+                {"value": name, "language": None, "authority": None, "confidence": -1}
+            ]
 
         payload = {
             "name": name,
@@ -377,12 +385,12 @@ class DSpaceClient:
     ) -> dict:
         """
         Create an item (archived, bypassing workflow).
-        
+
         Args:
             name: Item name
             owning_collection_uuid: UUID of owning collection
             metadata: Metadata dictionary
-        
+
         Returns:
             Created item object
         """
@@ -391,7 +399,9 @@ class DSpaceClient:
 
         # Ensure dc.title is set
         if "dc.title" not in metadata:
-            metadata["dc.title"] = [{"value": name, "language": None, "authority": None, "confidence": -1}]
+            metadata["dc.title"] = [
+                {"value": name, "language": None, "authority": None, "confidence": -1}
+            ]
 
         payload = {
             "name": name,
@@ -419,11 +429,11 @@ class DSpaceClient:
     async def create_bundle(self, item_uuid: str, name: str = "ORIGINAL") -> dict:
         """
         Create a bundle in an item.
-        
+
         Args:
             item_uuid: UUID of parent item
             name: Bundle name (default: ORIGINAL)
-        
+
         Returns:
             Created bundle object
         """
@@ -451,13 +461,13 @@ class DSpaceClient:
     ) -> dict:
         """
         Upload a bitstream to a bundle.
-        
+
         Args:
             bundle_uuid: UUID of parent bundle
             filename: Filename for the bitstream
             content: Binary content
             metadata: Metadata dictionary
-        
+
         Returns:
             Created bitstream object
         """
@@ -469,7 +479,9 @@ class DSpaceClient:
 
         # Ensure dc.title is set
         if "dc.title" not in metadata:
-            metadata["dc.title"] = [{"value": filename, "language": None, "authority": None, "confidence": -1}]
+            metadata["dc.title"] = [
+                {"value": filename, "language": None, "authority": None, "confidence": -1}
+            ]
 
         # Per the DSpace REST contract, bitstream name + metadata must be supplied
         # as a single JSON "properties" multipart part (sent with content type
@@ -531,9 +543,7 @@ class DSpaceClient:
         )
         return response.json()
 
-    async def get_bundle_bitstreams(
-        self, bundle_uuid: str, embed_format: bool = True
-    ) -> dict:
+    async def get_bundle_bitstreams(self, bundle_uuid: str, embed_format: bool = True) -> dict:
         """
         Get bitstreams in a bundle, optionally with format embedded.
 
@@ -551,7 +561,9 @@ class DSpaceClient:
         """
         params = {"embed": "format"} if embed_format else None
         response = await self._request(
-            "GET", f"core/bundles/{bundle_uuid}/bitstreams", params=params,
+            "GET",
+            f"core/bundles/{bundle_uuid}/bitstreams",
+            params=params,
             method_name="get_bundle_bitstreams",
         )
         return response.json()
@@ -605,14 +617,14 @@ class DSpaceClient:
     ) -> dict:
         """
         Create a view event for an item.
-        
+
         Endpoint: POST /api/statistics/viewevents
-        
+
         Args:
             target_uuid: UUID of the item being viewed
             target_type: Type of object (default: "item")
             referrer: Optional referrer URL
-        
+
         Returns:
             Response from statistics endpoint
         """
@@ -639,36 +651,30 @@ class DSpaceClient:
     ) -> dict:
         """
         Create an EPerson account.
-        
+
         Endpoint: POST /api/eperson/epersons
-        
+
         Args:
             email: Unique email address
             first_name: First name
             last_name: Last name
-        
+
         Returns:
             Created EPerson object with UUID
         """
         payload = {
             "email": email,
             "metadata": {
-                "eperson.firstname": [{
-                    "value": first_name,
-                    "language": None,
-                    "authority": None,
-                    "confidence": -1
-                }],
-                "eperson.lastname": [{
-                    "value": last_name,
-                    "language": None,
-                    "authority": None,
-                    "confidence": -1
-                }]
+                "eperson.firstname": [
+                    {"value": first_name, "language": None, "authority": None, "confidence": -1}
+                ],
+                "eperson.lastname": [
+                    {"value": last_name, "language": None, "authority": None, "confidence": -1}
+                ],
             },
             "canLogIn": True,
             "requireCertificate": False,
-            "type": "eperson"
+            "type": "eperson",
         }
 
         response = await self._request(
@@ -687,9 +693,9 @@ class DSpaceClient:
     ) -> None:
         """
         Add an EPerson to a group.
-        
+
         Uses POST /api/eperson/groups/{group_uuid}/epersons with text/uri-list.
-        
+
         Args:
             group_uuid: UUID of the group
             eperson_uuid: UUID of the EPerson to add
@@ -722,11 +728,11 @@ class DSpaceClient:
     async def create_group(self, name: str, description: str | None = None) -> dict:
         """
         Create an EPerson group.
-        
+
         Args:
             name: Group name
             description: Group description
-        
+
         Returns:
             Created group object
         """
@@ -753,13 +759,13 @@ class DSpaceClient:
     async def search_group_by_name(self, name: str) -> dict | None:
         """
         Search for a group by name.
-        
+
         Uses GET /api/eperson/groups/search/byMetadata?query={name}
         Searches in UUID and group name fields.
-        
+
         Args:
             name: Group name to search for
-        
+
         Returns:
             Group object if exact name match found, None otherwise
         """
@@ -783,13 +789,13 @@ class DSpaceClient:
     async def find_or_create_group(self, name: str, description: str | None = None) -> dict:
         """
         Find existing group by name, or create if it doesn't exist.
-        
+
         This is useful for reusable groups that might persist across runs.
-        
+
         Args:
             name: Group name
             description: Group description (used only if creating new group)
-        
+
         Returns:
             Group object (existing or newly created)
         """
@@ -808,10 +814,10 @@ class DSpaceClient:
     ) -> None:
         """
         Add a subgroup to a parent group.
-        
+
         Uses POST /api/eperson/groups/{parent_uuid}/subgroups with text/uri-list.
         This creates a group hierarchy where permissions inherit from subgroups.
-        
+
         Args:
             parent_group_uuid: UUID of parent group
             subgroup_uuid: UUID of subgroup to add as member
@@ -848,16 +854,16 @@ class DSpaceClient:
     ) -> dict:
         """
         Create the default item READ group for a collection.
-        
+
         This creates a collection-specific group that grants READ access to items.
         DSpace automatically names this group (you cannot specify the name).
         Items created in this collection will automatically inherit READ permissions
         from this group.
-        
+
         Args:
             collection_uuid: UUID of the collection
             description: Optional description for the group
-        
+
         Returns:
             Created group object
         """
@@ -866,12 +872,7 @@ class DSpaceClient:
 
         if description:
             payload["metadata"]["dc.description"] = [
-                {
-                    "value": description,
-                    "language": None,
-                    "authority": None,
-                    "confidence": -1
-                }
+                {"value": description, "language": None, "authority": None, "confidence": -1}
             ]
 
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/itemReadGroup"
@@ -905,16 +906,16 @@ class DSpaceClient:
     ) -> dict:
         """
         Create the default bitstream READ group for a collection.
-        
+
         This creates a collection-specific group that grants READ access to bitstreams.
         DSpace automatically names this group (you cannot specify the name).
         Bitstreams in items created in this collection will automatically inherit
         READ permissions from this group.
-        
+
         Args:
             collection_uuid: UUID of the collection
             description: Optional description for the group
-        
+
         Returns:
             Created group object
         """
@@ -923,12 +924,7 @@ class DSpaceClient:
 
         if description:
             payload["metadata"]["dc.description"] = [
-                {
-                    "value": description,
-                    "language": None,
-                    "authority": None,
-                    "confidence": -1
-                }
+                {"value": description, "language": None, "authority": None, "confidence": -1}
             ]
 
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/bitstreamReadGroup"
@@ -968,7 +964,7 @@ class DSpaceClient:
     ) -> dict:
         """
         Search for items using the discovery endpoint.
-        
+
         Args:
             query: Search query string (Solr/Lucene syntax)
             filters: Dict of filter_name: (value, operator) pairs
@@ -977,7 +973,7 @@ class DSpaceClient:
             page: Page number
             size: Page size (max 100)
             configuration: Discovery configuration name (e.g., "workflow")
-        
+
         Returns:
             Search results with embedded items
         """
@@ -1005,7 +1001,9 @@ class DSpaceClient:
                 value, operator = filter_value
                 params[f"f.{filter_name}"] = f"{value},{operator}"
 
-        response = await self._request("GET", "discover/search/objects", params=params, method_name="search_items")
+        response = await self._request(
+            "GET", "discover/search/objects", params=params, method_name="search_items"
+        )
         return response.json()
 
     async def get_item(self, uuid: str) -> dict:
@@ -1013,9 +1011,7 @@ class DSpaceClient:
         response = await self._request("GET", f"core/items/{uuid}", method_name="get_item")
         return response.json()
 
-    async def resolve_pdf_format_id(
-        self, override_format_id: int | None = None
-    ) -> int | None:
+    async def resolve_pdf_format_id(self, override_format_id: int | None = None) -> int | None:
         """
         Resolve the bitstream format id for PDF from the registry.
 
@@ -1182,9 +1178,7 @@ class DSpaceClient:
                             )
                         except DSpaceAPIError:
                             continue
-                    bitstreams = bitstreams_data.get("_embedded", {}).get(
-                        "bitstreams", []
-                    )
+                    bitstreams = bitstreams_data.get("_embedded", {}).get("bitstreams", [])
                     if not bitstreams:
                         bitstreams = bitstreams_data.get("bitstreams", [])
                     for bs in bitstreams:
@@ -1220,9 +1214,7 @@ class DSpaceClient:
                 else delay_between_pages
             )
             if debug_page_callback:
-                debug_page_callback(
-                    page, page_duration, float(current_delay), self.courtesy_delay
-                )
+                debug_page_callback(page, page_duration, float(current_delay), self.courtesy_delay)
             if adaptive_delay and delay_controller is not None:
                 await delay_controller.record_result(page_duration, status="ok")
             if len(objects) < page_size:
@@ -1262,9 +1254,7 @@ class DSpaceClient:
         Returns:
             Dict with "count", "total_items_processed", and "pdf_format_id" (id used).
         """
-        resolved_id = await self.resolve_pdf_format_id(
-            override_format_id=pdf_format_id
-        )
+        resolved_id = await self.resolve_pdf_format_id(override_format_id=pdf_format_id)
         if resolved_id is None:
             return {
                 "count": 0,
@@ -1377,21 +1367,21 @@ class DSpaceClient:
     async def verify_server_version(self, raise_on_mismatch: bool = True) -> str | None:
         """
         Verify that the connected server version is compatible with target_versions.
-        
+
         This method should be called after client initialization to ensure the server
         version matches the declared target versions. It will:
         - Detect the server version (config/properties/dspace.version, then root API, then actuator/info)
         - Compare against target_versions
         - Raise ServerVersionMismatchError for major version mismatches (if raise_on_mismatch=True)
         - Print warnings for minor version differences
-        
+
         Args:
             raise_on_mismatch: If True, raise exception on major version mismatch.
                              If False, return None on mismatch and only print warnings.
-        
+
         Returns:
             Warning message string if minor version difference, None otherwise
-        
+
         Raises:
             ServerVersionMismatchError: If major version mismatch and raise_on_mismatch=True
         """
@@ -1408,12 +1398,13 @@ class DSpaceClient:
         server_version = await self.detect_dspace_version()
 
         if server_version is None:
-            console.print("[yellow]⚠[/yellow]  Could not detect server version. Version validation skipped.")
+            console.print(
+                "[yellow]⚠[/yellow]  Could not detect server version. Version validation skipped."
+            )
             return None
 
         is_compatible, warning_msg = VersionCompatibility.check_server_version_compatibility(
-            server_version,
-            self.target_versions
+            server_version, self.target_versions
         )
 
         if not is_compatible:
@@ -1425,7 +1416,7 @@ class DSpaceClient:
                 raise ServerVersionMismatchError(
                     server_version=server_version,
                     target_versions=self.target_versions,
-                    message=error_msg
+                    message=error_msg,
                 )
             console.print(f"[red]Error:[/red] {error_msg}")
             return None
@@ -1436,7 +1427,9 @@ class DSpaceClient:
 
         # Exact match or compatible version
         target_versions_str = ", ".join(self.target_versions)
-        console.print(f"[green]✓[/green]  Server version {server_version} is compatible with target version(s) {target_versions_str}")
+        console.print(
+            f"[green]✓[/green]  Server version {server_version} is compatible with target version(s) {target_versions_str}"
+        )
         return None
 
     def _normalize_version(self, version_str: str | None) -> str | None:
@@ -1598,19 +1591,21 @@ class DSpaceClient:
         if version:
             return version
 
-        console.print(f"[dim]Warning: Could not detect server version ({last_error}). Version validation skipped.[/dim]")
+        console.print(
+            f"[dim]Warning: Could not detect server version ({last_error}). Version validation skipped.[/dim]"
+        )
         return self._set_last_detected_version(None)
 
     async def get_item_submitter(self, item_uuid: str) -> dict | None:
         """
         Get the submitter (EPerson) for a specific item.
-        
+
         Note: This endpoint only exists in DSpace 9+. For DSpace 7, this will return None.
         Use the embed parameter or search workspaceitems to find submitter in DSpace 7.
-        
+
         Args:
             item_uuid: UUID of the item
-        
+
         Returns:
             EPerson object of the submitter, or None if not available
         """

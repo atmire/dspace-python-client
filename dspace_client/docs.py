@@ -21,7 +21,7 @@ GIT_TIMEOUT_SECONDS = 30
 class RestContractFetcher:
     """
     Manages DSpace REST API documentation with git-based updates.
-    
+
     Uses git clone + fetch to keep docs fresh and track changes.
     """
 
@@ -33,7 +33,7 @@ class RestContractFetcher:
     def __init__(self, cache_dir: Path | None = None):
         """
         Initialize documentation fetcher.
-        
+
         Args:
             cache_dir: Custom cache directory (defaults to project docs/dspace-rest-api/)
         """
@@ -43,17 +43,17 @@ class RestContractFetcher:
     async def fetch_version(self, version: str, force_update: bool = False) -> Path:
         """
         Clone/fetch REST contract for specific DSpace version.
-        
+
         Call explicitly via ``await client.docs_fetcher.fetch_version(...)`` or
         ``create_validated_client(..., fetch_docs=True)``.
-        
+
         Args:
             version: "bleeding-edge", "7.0", "8.0", "9.0", etc.
             force_update: Force git fetch even if recently updated
-        
+
         Returns:
             Path to git repository directory
-        
+
         Raises:
             ValueError: If version is not supported
             NetworkError: If GitHub is unreachable
@@ -165,7 +165,7 @@ class RestContractFetcher:
     async def update_all_versions(self) -> dict[str, bool]:
         """
         Update all cached versions with latest changes.
-        
+
         Returns:
             Dict mapping version to success status
         """
@@ -240,7 +240,7 @@ class RestContractFetcher:
     def validate_operation(self, operation: str, endpoint: str, versions: list[str]) -> bool:
         """
         Validate if operation is supported across all target versions.
-        
+
         Returns True if compatible with ALL versions, False otherwise.
         """
         return True
@@ -281,7 +281,7 @@ class RestContractFetcher:
                 "branch": current_branch,
                 "last_commit": last_commit,
                 "last_commit_date": last_commit_date,
-                "last_update": str(self.get_last_update_time(version) or "never")
+                "last_update": str(self.get_last_update_time(version) or "never"),
             }
 
         except subprocess.TimeoutExpired:
@@ -320,13 +320,17 @@ def cli_main():
                 version,
                 status.get("status", "unknown"),
                 status.get("branch", "-"),
-                status.get("last_update", "-")
+                status.get("last_update", "-"),
             )
 
         console.print(table)
 
     @app.command("fetch")
-    def fetch_version(version: str = typer.Argument(..., help="Version to fetch (e.g., 7.6, 8.0, 9.0, bleeding-edge)")):
+    def fetch_version(
+        version: str = typer.Argument(
+            ..., help="Version to fetch (e.g., 7.6, 8.0, 9.0, bleeding-edge)"
+        ),
+    ):
         """Fetch documentation for a specific version."""
         fetcher = RestContractFetcher()
 

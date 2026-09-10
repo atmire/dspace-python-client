@@ -45,9 +45,7 @@ async def test_prompt_and_authenticate_fails_after_three_wrong_passwords():
         side_effect=["bad2", "bad3"],
     ):
         with pytest.raises(AuthenticationError, match="after 3 attempts"):
-            await prompt_and_authenticate(
-                auth, "admin@example.com", "bad1", console=None
-            )
+            await prompt_and_authenticate(auth, "admin@example.com", "bad1", console=None)
 
     assert auth.authenticate.await_count == 3
 
@@ -55,9 +53,7 @@ async def test_prompt_and_authenticate_fails_after_three_wrong_passwords():
 @pytest.mark.asyncio
 async def test_prompt_and_authenticate_does_not_retry_csrf_errors():
     auth = DSpaceAuthClient("https://demo.dspace.org")
-    auth.authenticate = AsyncMock(
-        side_effect=AuthenticationError("Failed to get CSRF token: boom")
-    )
+    auth.authenticate = AsyncMock(side_effect=AuthenticationError("Failed to get CSRF token: boom"))
 
     with pytest.raises(AuthenticationError, match="CSRF"):
         await prompt_and_authenticate(auth, "admin@example.com", "pass", console=None)

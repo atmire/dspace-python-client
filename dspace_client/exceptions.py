@@ -1,7 +1,6 @@
 """Centralized exceptions for DSpace client."""
 
 
-
 class DSpaceClientError(Exception):
     """Base exception for all DSpace client errors."""
 
@@ -21,7 +20,7 @@ class AuthenticationError(DSpaceClientError):
 
 class DSpaceAPIError(DSpaceClientError):
     """Raised when DSpace API returns an error.
-    
+
     Attributes:
         status_code: Optional HTTP status code from the response, if available.
     """
@@ -39,7 +38,7 @@ class VersionIncompatibilityError(DSpaceClientError):
         operation: str,
         target_versions: list[str],
         supported_versions: list[str],
-        message: str | None = None
+        message: str | None = None,
     ):
         self.operation = operation
         self.target_versions = target_versions
@@ -67,14 +66,11 @@ class NetworkError(DSpaceClientError):
 class ServerVersionMismatchError(DSpaceClientError):
     """Raised when server version doesn't match target_versions."""
 
-    def __init__(
-        self,
-        server_version: str,
-        target_versions: list[str],
-        message: str | None = None
-    ):
+    def __init__(self, server_version: str, target_versions: list[str], message: str | None = None):
         self.server_version = server_version
-        self.target_versions = target_versions if isinstance(target_versions, list) else [target_versions]
+        self.target_versions = (
+            target_versions if isinstance(target_versions, list) else [target_versions]
+        )
 
         if message is None:
             target_versions_str = ", ".join(self.target_versions)

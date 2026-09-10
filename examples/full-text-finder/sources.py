@@ -141,7 +141,9 @@ async def try_openalex(
 ) -> SourceHit | None:
     await THROTTLE_OPENALEX.wait()
     doi_url = doi if doi.startswith("https://doi.org/") else f"https://doi.org/{doi}"
-    api_url = f"https://api.openalex.org/works/{quote(doi_url, safe='')}?mailto={quote(email, safe='')}"
+    api_url = (
+        f"https://api.openalex.org/works/{quote(doi_url, safe='')}?mailto={quote(email, safe='')}"
+    )
     r = await http.get(api_url, follow_redirects=True, timeout=timeout_s)
     if r.status_code != 200:
         return None

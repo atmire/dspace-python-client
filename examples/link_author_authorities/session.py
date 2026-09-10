@@ -54,7 +54,9 @@ async def _call_with_reauth(
         if not retry_on_401 or status != 401:
             raise
 
-        console.print("[yellow]Received 401 from DSpace API; refreshing session and retrying once...[/yellow]")
+        console.print(
+            "[yellow]Received 401 from DSpace API; refreshing session and retrying once...[/yellow]"
+        )
         # Force re-auth and sync client tokens, then retry once
         jwt = await auth.ensure_session(username, password, force=True)
         client.jwt_token = auth.jwt_token or jwt

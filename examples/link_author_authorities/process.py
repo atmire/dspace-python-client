@@ -83,8 +83,11 @@ async def discover_item_uuids_newest_first(
             ),
         )
         objects = (
-            results.get("_embedded") or {}
-        ).get("searchResult", {}).get("_embedded", {}).get("objects", [])
+            (results.get("_embedded") or {})
+            .get("searchResult", {})
+            .get("_embedded", {})
+            .get("objects", [])
+        )
         if not objects:
             break
         for obj in objects:
@@ -262,7 +265,9 @@ async def process_item(
         normalized = normalize_name(author_value)
 
         # When filter_author_name is set (Name mode without ORCID), only process authors matching that name
-        if filter_author_name is not None and not fuzzy_match_author(author_value, filter_author_name):
+        if filter_author_name is not None and not fuzzy_match_author(
+            author_value, filter_author_name
+        ):
             continue
 
         # When target_authority is set (ORCID/Name mode), only link if author fuzzy-matches that authority
@@ -282,9 +287,7 @@ async def process_item(
                 )
                 continue
             if not auto_link_single:
-                detail_preview = await fetch_entry_detail(
-                    client, vocabulary_name, authority_uuid
-                )
+                detail_preview = await fetch_entry_detail(client, vocabulary_name, authority_uuid)
                 orcid_preview = extract_orcid_from_entry(
                     {"authority": authority_uuid, "metadata": {}}, detail_preview
                 )
@@ -294,9 +297,7 @@ async def process_item(
                     f"Authority UUID: [bold]{authority_uuid}[/bold]",
                 ]
                 if orcid_preview:
-                    lines.append(
-                        f"ORCID: [link={orcid_preview}]{orcid_preview}[/link]"
-                    )
+                    lines.append(f"ORCID: [link={orcid_preview}]{orcid_preview}[/link]")
                 console.print(
                     Panel(
                         "\n".join(lines),
@@ -500,17 +501,13 @@ async def process_item(
                 detail_preview = await fetch_entry_detail(
                     client, vocabulary_name, authority_uuid_preview
                 )
-                orcid_preview = extract_orcid_from_entry(
-                    selected_entry, detail_preview
-                )
+                orcid_preview = extract_orcid_from_entry(selected_entry, detail_preview)
                 lines = [
                     f"Author (item): [bold]{author_value}[/bold]",
                     f"Authority UUID: [bold]{authority_uuid_preview}[/bold]",
                 ]
                 if orcid_preview:
-                    lines.append(
-                        f"ORCID: [link={orcid_preview}]{orcid_preview}[/link]"
-                    )
+                    lines.append(f"ORCID: [link={orcid_preview}]{orcid_preview}[/link]")
                 console.print(
                     Panel(
                         "\n".join(lines),
@@ -565,9 +562,7 @@ async def process_item(
                 f"author={author_value!r} authority={authority_uuid} orcid={orcid_display!r}",
             )
         except AuthenticationError as e:
-            console.print(
-                f"[red]Authentication error during PATCH for item {item_uuid}: {e}[/red]"
-            )
+            console.print(f"[red]Authentication error during PATCH for item {item_uuid}: {e}[/red]")
             # Fatal: bubble up so the main loop can abort the run
             raise
         except Exception as e:

@@ -11,9 +11,7 @@ def _strip_accents(s: str) -> str:
     """Remove diacritics from a string while preserving base characters."""
     if not s:
         return ""
-    return "".join(
-        ch for ch in unicodedata.normalize("NFKD", s) if not unicodedata.combining(ch)
-    )
+    return "".join(ch for ch in unicodedata.normalize("NFKD", s) if not unicodedata.combining(ch))
 
 
 def normalize_name(s: str) -> str:

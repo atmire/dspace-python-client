@@ -30,6 +30,7 @@ def _extract_major_minor(version_str: str) -> str | None:
 @dataclass
 class DSpaceVersion:
     """Represents a DSpace version."""
+
     major: int
     minor: int
 
@@ -60,7 +61,7 @@ class DSpaceVersion:
 class VersionCompatibility:
     """
     Validates API operations against target DSpace version(s).
-    
+
     CRITICAL: Every API call is validated before execution.
     """
 
@@ -79,26 +80,21 @@ class VersionCompatibility:
         "create_bundle": ["7.0+"],
         "upload_bitstream": ["7.0+"],
         "delete_bitstream": ["7.0+"],
-
         # EPerson operations
         "create_eperson": ["7.0+"],
         "delete_eperson": ["7.0+"],
         "add_eperson_to_group": ["7.0+"],
-
         # Group operations
         "create_group": ["7.0+"],
         "delete_group": ["7.0+"],
         "search_group_by_name": ["7.0+"],
         "find_or_create_group": ["7.0+"],
         "add_subgroup_to_group": ["7.0+"],
-
         # Collection default groups
         "create_collection_item_read_group": ["7.0+"],
         "create_collection_bitstream_read_group": ["7.0+"],
-
         # Statistics
         "create_item_view": ["7.0+"],
-
         # Read operations
         "get_item_bundles": ["7.0+"],
         "get_bundle_bitstreams": ["7.0+"],
@@ -110,7 +106,6 @@ class VersionCompatibility:
         "get_vocabulary_entries": ["7.0+"],
         "get_vocabulary_entry_detail": ["7.0+"],
         "get_eperson": ["7.0+"],
-
         # Version-specific methods are expressed by raising the floor, e.g. a method
         # only available from DSpace 8 onwards would be listed as ["8.0+"].
     }
@@ -118,7 +113,7 @@ class VersionCompatibility:
     def __init__(self, target_versions: str | list[str], docs_fetcher=None):
         """
         Initialize validator with target versions.
-        
+
         Args:
             target_versions: Single version string or list of versions to validate against
             docs_fetcher: Optional fetcher with loaded REST contract docs
@@ -138,14 +133,14 @@ class VersionCompatibility:
     def validate_before_call(self, method_name: str, endpoint: str, operation: str) -> None:
         """
         Validate operation is compatible with ALL target versions.
-        
+
         Called automatically before every API call.
-        
+
         Args:
             method_name: Name of the method being called
             endpoint: API endpoint path
             operation: HTTP operation (GET, POST, PUT, DELETE)
-        
+
         Raises:
             VersionIncompatibilityError: If operation not supported in any target version
         """
@@ -177,7 +172,7 @@ class VersionCompatibility:
                     f"Operation '{method_name}' not supported in DSpace version(s): {', '.join(incompatible_versions)}. "
                     f"Supported in: {', '.join(supported_versions) if supported_versions else 'none'}. "
                     f"Consider using target_versions={supported_versions} or implement workaround."
-                )
+                ),
             )
 
     def _is_version_compatible(self, version: str, required_versions: list[str]) -> bool:
@@ -245,22 +240,21 @@ class VersionCompatibility:
 
     @staticmethod
     def check_server_version_compatibility(
-        server_version: str,
-        target_versions: list[str]
+        server_version: str, target_versions: list[str]
     ) -> tuple[bool, str | None]:
         """
         Check if server version is compatible with target versions.
-        
+
         Compatibility rules:
         - Exact match (e.g., 9.0 == 9.0) → OK, no warning
         - Minor version difference, same major (e.g., 9.0 vs 9.1) → OK with warning
         - Major version difference (e.g., 7.x vs 8.0+) → NOT compatible
-        
+
         Args:
             server_version: Actual server version as reported by the server. This may be a
                 free-form string like "DSpace 7.6" or "9.0.1 (build ...)".
             target_versions: List of target versions (e.g., ["8.0", "9.0"])
-        
+
         Returns:
             Tuple of (is_compatible: bool, warning_message: Optional[str])
             - If major version mismatch: (False, None)
@@ -275,17 +269,26 @@ class VersionCompatibility:
             try:
                 server_v = DSpaceVersion.from_string(normalized_server_version)
                 if server_v.major < 7:
-                    return True, f"Server version {server_version} is quite old. Proceeding with caution."
+                    return (
+                        True,
+                        f"Server version {server_version} is quite old. Proceeding with caution.",
+                    )
                 return True, None
             except ValueError:
                 # If we can't parse, allow it but warn
-                return True, f"Could not parse server version '{server_version}'. Proceeding with caution."
+                return (
+                    True,
+                    f"Could not parse server version '{server_version}'. Proceeding with caution.",
+                )
 
         try:
             server_v = DSpaceVersion.from_string(normalized_server_version)
         except ValueError:
             # If we can't parse server version, we can't validate
-            return True, f"Could not parse server version '{server_version}'. Version validation skipped."
+            return (
+                True,
+                f"Could not parse server version '{server_version}'. Version validation skipped.",
+            )
 
         # Check each target version
         exact_match = False

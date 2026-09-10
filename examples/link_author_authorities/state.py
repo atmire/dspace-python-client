@@ -32,9 +32,7 @@ def _get_state_path(log_dir: str, base_url: str) -> str:
     if override:
         return override
     repo_key = _repo_key_from_base_url(base_url)
-    return os.path.join(
-        log_dir, f"link_author_authorities_state_{repo_key}.jsonl"
-    )
+    return os.path.join(log_dir, f"link_author_authorities_state_{repo_key}.jsonl")
 
 
 def _get_checkpoint_path(log_dir: str, base_url: str) -> str:
@@ -43,9 +41,7 @@ def _get_checkpoint_path(log_dir: str, base_url: str) -> str:
     if override:
         return override
     repo_key = _repo_key_from_base_url(base_url)
-    return os.path.join(
-        log_dir, f"link_author_authorities_repo_checkpoint_{repo_key}.json"
-    )
+    return os.path.join(log_dir, f"link_author_authorities_repo_checkpoint_{repo_key}.json")
 
 
 def _load_repo_checkpoint(path: str) -> dict:

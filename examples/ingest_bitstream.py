@@ -99,9 +99,7 @@ def _validate_upload_basename(name: str, resolved_name: str) -> None:
     if any(ord(c) < _FIRST_PRINTABLE_ASCII for c in name):
         raise ValueError(msg)
 
-    msg = (
-        f"Filename is too long ({len(name)} chars); max {MAX_BASENAME_LEN} for this script."
-    )
+    msg = f"Filename is too long ({len(name)} chars); max {MAX_BASENAME_LEN} for this script."
     if len(name) > MAX_BASENAME_LEN:
         raise ValueError(msg)
 
@@ -201,8 +199,7 @@ async def bundle_has_bitstream_name(client, bundle_uuid: str, filename: str) -> 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=(
-            "Upload a local file to a DSpace item's ORIGINAL bundle "
-            "(creates the bundle if absent)."
+            "Upload a local file to a DSpace item's ORIGINAL bundle (creates the bundle if absent)."
         ),
         epilog=(
             "Interactive order: repository URL, credentials, then (if not passed as "
@@ -258,8 +255,7 @@ async def _run_upload_after_auth(client, ctx: _UploadContext) -> None:
     console.print(f"  [dim]Local file:[/dim] {ctx.resolved_path}")
     console.print(f"  [dim]Upload name:[/dim] {ctx.upload_name}")
     sz_line = (
-        f"  [dim]Size (added storage):[/dim] {format_size(ctx.file_size)} "
-        f"({ctx.file_size} bytes)"
+        f"  [dim]Size (added storage):[/dim] {format_size(ctx.file_size)} ({ctx.file_size} bytes)"
     )
     console.print(sz_line)
 
@@ -343,13 +339,14 @@ def _gather_upload_targets(args: argparse.Namespace) -> _UploadContext | None:
     raw_path = _strip_wrapping_quotes(args.file_path or "") or None
 
     if not raw_uuid:
-        raw_uuid = _strip_wrapping_quotes(
-            console.input("[bold cyan]Item UUID:[/bold cyan] ")
-        ) or None
+        raw_uuid = (
+            _strip_wrapping_quotes(console.input("[bold cyan]Item UUID:[/bold cyan] ")) or None
+        )
     if not raw_path:
-        raw_path = _strip_wrapping_quotes(
-            console.input("[bold cyan]Path to local file:[/bold cyan] ")
-        ) or None
+        raw_path = (
+            _strip_wrapping_quotes(console.input("[bold cyan]Path to local file:[/bold cyan] "))
+            or None
+        )
 
     if not raw_uuid:
         console.print("[red]Item UUID is required.[/red]")

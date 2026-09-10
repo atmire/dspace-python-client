@@ -20,7 +20,9 @@ _ORCID_SEGMENT = re.compile(
 )
 
 
-async def fetch_entry_detail(client: DSpaceClient, vocabulary_name: str, authority_uuid: str) -> dict | None:
+async def fetch_entry_detail(
+    client: DSpaceClient, vocabulary_name: str, authority_uuid: str
+) -> dict | None:
     """Optionally fetch vocabulary entry detail for ORCID/display. Returns None on any error."""
     return await client.get_vocabulary_entry_detail(vocabulary_name, authority_uuid)
 
@@ -55,13 +57,13 @@ def extract_orcid_from_entry(entry: dict, detail: dict | None) -> str | None:
         "orcid",
         "person.identifier.orcid",
     ):
-        for lst in (meta.get(key) or []):
+        for lst in meta.get(key) or []:
             if isinstance(lst, dict) and lst.get("value"):
                 out = _orcid_candidate_from_plain_or_url(lst["value"])
                 if out:
                     return out
     for key in ("dc.identifier.uri",):
-        for lst in (meta.get(key) or []):
+        for lst in meta.get(key) or []:
             if isinstance(lst, dict) and lst.get("value"):
                 out = _orcid_candidate_from_plain_or_url(lst["value"])
                 if out:
@@ -86,9 +88,7 @@ def _valid_orcid_compact(compact: str) -> bool:
     """ORCID is 16 chars: 15 digits plus a final digit or checksum X."""
     if len(compact) != 16:
         return False
-    return all(c.isdigit() for c in compact[:15]) and (
-        compact[15].isdigit() or compact[15] == "X"
-    )
+    return all(c.isdigit() for c in compact[:15]) and (compact[15].isdigit() or compact[15] == "X")
 
 
 def _compact_from_hyphenated(h: str) -> str | None:
@@ -201,9 +201,7 @@ async def resolve_authority_by_orcid(
             extracted = extract_orcid_from_entry(e, None)
             detail: dict | None = None
             if not extracted:
-                detail = await fetch_entry_detail(
-                    client, vocabulary_name, e.get("authority", "")
-                )
+                detail = await fetch_entry_detail(client, vocabulary_name, e.get("authority", ""))
                 extracted = extract_orcid_from_entry(e, detail)
             ex_norm = normalize_orcid_identifier(extracted) if extracted else None
             if ex_norm == orcid_digits:
@@ -211,9 +209,7 @@ async def resolve_authority_by_orcid(
                 return (e["authority"], name)
         return None
 
-    async def _fetch_entries_filtered(
-        filter_term: str | None, page: int
-    ) -> list[dict]:
+    async def _fetch_entries_filtered(filter_term: str | None, page: int) -> list[dict]:
         resp = await _throttled_call(
             auth,
             client,

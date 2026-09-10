@@ -23,7 +23,7 @@ class TestDSpaceClient:
             jwt_token="test-jwt-token",
             csrf_token="test-csrf-token",
             http_client=mock_http_client,
-            target_versions="bleeding-edge"
+            target_versions="bleeding-edge",
         )
 
         assert client.base_url == "https://demo.dspace.org"
@@ -40,10 +40,7 @@ class TestDSpaceClient:
         """Test getting headers without CSRF token."""
         headers = mock_dspace_client._get_headers(include_csrf=False)
 
-        expected = {
-            "Authorization": "Bearer mock-jwt-token",
-            "Content-Type": "application/json"
-        }
+        expected = {"Authorization": "Bearer mock-jwt-token", "Content-Type": "application/json"}
         assert headers == expected
 
     @pytest.mark.asyncio
@@ -54,7 +51,7 @@ class TestDSpaceClient:
         expected = {
             "Authorization": "Bearer mock-jwt-token",
             "Content-Type": "application/json",
-            "X-XSRF-TOKEN": "mock-csrf-token"
+            "X-XSRF-TOKEN": "mock-csrf-token",
         }
         assert headers == expected
 
@@ -153,9 +150,7 @@ class TestDSpaceClient:
 
         mock_http_client.request = AsyncMock(side_effect=[fail_response, ok_response])
 
-        response = await client._request(
-            "GET", "core/communities", method_name="create_community"
-        )
+        response = await client._request("GET", "core/communities", method_name="create_community")
 
         assert response.status_code == 200
         assert mock_http_client.request.await_count == 2
@@ -183,9 +178,7 @@ class TestDSpaceClient:
         mock_http_client.request = AsyncMock(return_value=fail_response)
 
         with pytest.raises(DSpaceAPIError, match="status 400"):
-            await client._request(
-                "GET", "core/communities", method_name="create_community"
-            )
+            await client._request("GET", "core/communities", method_name="create_community")
 
         assert mock_http_client.request.await_count == 1
 
@@ -194,6 +187,7 @@ class TestDSpaceClient:
         """Test successful community creation."""
         # Create a mock response object with synchronous json() method
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = sample_community_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
@@ -202,64 +196,90 @@ class TestDSpaceClient:
 
         assert result == sample_community_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/communities", json_data={
+            "POST",
+            "core/communities",
+            json_data={
                 "name": "Test Community",
                 "metadata": {
-                    "dc.title": [{"value": "Test Community", "language": None, "authority": None, "confidence": -1}]
-                }
-            }
-            , method_name="create_community"
+                    "dc.title": [
+                        {
+                            "value": "Test Community",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
+                },
+            },
+            method_name="create_community",
         )
 
     @pytest.mark.asyncio
     async def test_create_community_with_metadata(self, mock_dspace_client, sample_community_data):
         """Test community creation with custom metadata."""
         custom_metadata = {
-            "dc.title": [{"value": "Custom Title", "language": None, "authority": None, "confidence": -1}],
-            "dc.description": [{"value": "Custom Description", "language": None, "authority": None, "confidence": -1}]
+            "dc.title": [
+                {"value": "Custom Title", "language": None, "authority": None, "confidence": -1}
+            ],
+            "dc.description": [
+                {
+                    "value": "Custom Description",
+                    "language": None,
+                    "authority": None,
+                    "confidence": -1,
+                }
+            ],
         }
 
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = sample_community_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
 
         result = await mock_dspace_client.create_community(
-            "Test Community",
-            metadata=custom_metadata
+            "Test Community", metadata=custom_metadata
         )
 
         assert result == sample_community_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/communities", json_data={
-                "name": "Test Community",
-                "metadata": custom_metadata
-            }
-            , method_name="create_community"
+            "POST",
+            "core/communities",
+            json_data={"name": "Test Community", "metadata": custom_metadata},
+            method_name="create_community",
         )
 
     @pytest.mark.asyncio
     async def test_create_community_with_parent(self, mock_dspace_client, sample_community_data):
         """Test community creation with parent."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = sample_community_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
 
         result = await mock_dspace_client.create_community(
-            "Test Subcommunity",
-            parent_uuid="parent-uuid"
+            "Test Subcommunity", parent_uuid="parent-uuid"
         )
 
         assert result == sample_community_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/communities?parent=parent-uuid", json_data={
+            "POST",
+            "core/communities?parent=parent-uuid",
+            json_data={
                 "name": "Test Subcommunity",
                 "metadata": {
-                    "dc.title": [{"value": "Test Subcommunity", "language": None, "authority": None, "confidence": -1}]
-                }
-            }
-            , method_name="create_community"
+                    "dc.title": [
+                        {
+                            "value": "Test Subcommunity",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
+                },
+            },
+            method_name="create_community",
         )
 
     @pytest.mark.asyncio
@@ -277,52 +297,68 @@ class TestDSpaceClient:
     async def test_create_collection_success(self, mock_dspace_client, sample_collection_data):
         """Test successful collection creation."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = sample_collection_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
 
         result = await mock_dspace_client.create_collection(
-            "Test Collection",
-            "parent-community-uuid"
+            "Test Collection", "parent-community-uuid"
         )
 
         assert result == sample_collection_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/collections?parent=parent-community-uuid", json_data={
+            "POST",
+            "core/collections?parent=parent-community-uuid",
+            json_data={
                 "name": "Test Collection",
                 "metadata": {
-                    "dc.title": [{"value": "Test Collection", "language": None, "authority": None, "confidence": -1}]
-                }
-            }
-            , method_name="create_collection"
+                    "dc.title": [
+                        {
+                            "value": "Test Collection",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
+                },
+            },
+            method_name="create_collection",
         )
 
     @pytest.mark.asyncio
     async def test_create_item_success(self, mock_dspace_client, sample_item_data):
         """Test successful item creation."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = sample_item_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
 
-        result = await mock_dspace_client.create_item(
-            "Test Item",
-            "owning-collection-uuid"
-        )
+        result = await mock_dspace_client.create_item("Test Item", "owning-collection-uuid")
 
         assert result == sample_item_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/items?owningCollection=owning-collection-uuid", json_data={
+            "POST",
+            "core/items?owningCollection=owning-collection-uuid",
+            json_data={
                 "name": "Test Item",
                 "metadata": {
-                    "dc.title": [{"value": "Test Item", "language": None, "authority": None, "confidence": -1}]
+                    "dc.title": [
+                        {
+                            "value": "Test Item",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
                 },
                 "inArchive": True,
                 "discoverable": True,
                 "withdrawn": False,
-                "type": "item"
-            }
-            , method_name="create_item"
+                "type": "item",
+            },
+            method_name="create_item",
         )
 
     @pytest.mark.asyncio
@@ -330,6 +366,7 @@ class TestDSpaceClient:
         """Test successful bundle creation."""
         bundle_data = {"uuid": "bundle-uuid", "name": "ORIGINAL"}
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = bundle_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
@@ -338,11 +375,10 @@ class TestDSpaceClient:
 
         assert result == bundle_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "core/items/item-uuid/bundles", json_data={
-                "name": "ORIGINAL",
-                "metadata": {}
-            }
-            , method_name="create_bundle"
+            "POST",
+            "core/items/item-uuid/bundles",
+            json_data={"name": "ORIGINAL", "metadata": {}},
+            method_name="create_bundle",
         )
 
     @pytest.mark.asyncio
@@ -350,15 +386,14 @@ class TestDSpaceClient:
         """Test successful bitstream upload."""
         bitstream_data = {"uuid": "bitstream-uuid", "name": "test.txt"}
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = bitstream_data
         mock_dspace_client.client.post.return_value = mock_response
 
         result = await mock_dspace_client.upload_bitstream(
-            "bundle-uuid",
-            "test.txt",
-            b"test content"
+            "bundle-uuid", "test.txt", b"test content"
         )
 
         assert result == bitstream_data
@@ -373,40 +408,39 @@ class TestDSpaceClient:
         mock_dspace_client.client.post.return_value = mock_response
 
         with pytest.raises(DSpaceAPIError, match="Bitstream upload failed"):
-            await mock_dspace_client.upload_bitstream(
-                "bundle-uuid",
-                "test.txt",
-                b"test content"
-            )
+            await mock_dspace_client.upload_bitstream("bundle-uuid", "test.txt", b"test content")
 
     @pytest.mark.asyncio
     async def test_create_eperson_success(self, mock_dspace_client):
         """Test successful EPerson creation."""
         eperson_data = {"uuid": "eperson-uuid", "email": "test@example.com"}
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = eperson_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
 
-        result = await mock_dspace_client.create_eperson(
-            "test@example.com",
-            "John",
-            "Doe"
-        )
+        result = await mock_dspace_client.create_eperson("test@example.com", "John", "Doe")
 
         assert result == eperson_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "eperson/epersons", json_data={
+            "POST",
+            "eperson/epersons",
+            json_data={
                 "email": "test@example.com",
                 "metadata": {
-                    "eperson.firstname": [{"value": "John", "language": None, "authority": None, "confidence": -1}],
-                    "eperson.lastname": [{"value": "Doe", "language": None, "authority": None, "confidence": -1}]
+                    "eperson.firstname": [
+                        {"value": "John", "language": None, "authority": None, "confidence": -1}
+                    ],
+                    "eperson.lastname": [
+                        {"value": "Doe", "language": None, "authority": None, "confidence": -1}
+                    ],
                 },
                 "canLogIn": True,
                 "requireCertificate": False,
-                "type": "eperson"
-            }
-            , method_name="create_eperson"
+                "type": "eperson",
+            },
+            method_name="create_eperson",
         )
 
     @pytest.mark.asyncio
@@ -414,6 +448,7 @@ class TestDSpaceClient:
         """Test successful group creation."""
         group_data = {"uuid": "group-uuid", "name": "Test Group"}
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.json.return_value = group_data
         mock_dspace_client._request = AsyncMock(return_value=mock_response)
@@ -422,13 +457,22 @@ class TestDSpaceClient:
 
         assert result == group_data
         mock_dspace_client._request.assert_called_once_with(
-            "POST", "eperson/groups", json_data={
+            "POST",
+            "eperson/groups",
+            json_data={
                 "name": "Test Group",
                 "metadata": {
-                    "dc.description": [{"value": "Test Description", "language": None, "authority": None, "confidence": -1}]
-                }
-            }
-            , method_name="create_group"
+                    "dc.description": [
+                        {
+                            "value": "Test Description",
+                            "language": None,
+                            "authority": None,
+                            "confidence": -1,
+                        }
+                    ]
+                },
+            },
+            method_name="create_group",
         )
 
     @pytest.mark.asyncio
@@ -460,7 +504,9 @@ class TestDSpaceClient:
         result = await mock_dspace_client.get_bundle_bitstreams("bundle-uuid", embed_format=True)
         assert result == bitstreams_data
         mock_dspace_client._request.assert_called_once_with(
-            "GET", "core/bundles/bundle-uuid/bitstreams", params={"embed": "format"},
+            "GET",
+            "core/bundles/bundle-uuid/bitstreams",
+            params={"embed": "format"},
             method_name="get_bundle_bitstreams",
         )
 
@@ -493,7 +539,9 @@ class TestDSpaceClient:
         result = await mock_dspace_client.get_bitstream_formats(page=0, size=100)
         assert result == formats_data
         mock_dspace_client._request.assert_called_once_with(
-            "GET", "core/bitstreamformats", params={"page": 0, "size": 100},
+            "GET",
+            "core/bitstreamformats",
+            params={"page": 0, "size": 100},
             method_name="get_bitstream_formats",
         )
 
@@ -543,18 +591,10 @@ class TestDSpaceClient:
         # Item 1: one bitstream with format id 3 (PDF)
         # Item 2: no PDF
         bitstreams_with_pdf = {
-            "_embedded": {
-                "bitstreams": [
-                    {"uuid": "bs-1", "_embedded": {"format": {"id": 3}}}
-                ]
-            }
+            "_embedded": {"bitstreams": [{"uuid": "bs-1", "_embedded": {"format": {"id": 3}}}]}
         }
         bitstreams_no_pdf = {
-            "_embedded": {
-                "bitstreams": [
-                    {"uuid": "bs-2", "_embedded": {"format": {"id": 5}}}
-                ]
-            }
+            "_embedded": {"bitstreams": [{"uuid": "bs-2", "_embedded": {"format": {"id": 5}}}]}
         }
         mock_dspace_client.get_bundle_bitstreams = AsyncMock(
             side_effect=[bitstreams_with_pdf, bitstreams_no_pdf]
@@ -603,7 +643,7 @@ class TestDSpaceClient:
         mock_dspace_client.get_item_bundles = AsyncMock()  # should never be called when cache hits
 
         cache = RestPDFCountCache(base_url="https://test.edu", cache_dir=tmp_path)
-        cache.update("item-1", True)   # has PDF
+        cache.update("item-1", True)  # has PDF
         cache.update("item-2", False)  # no PDF
 
         result = await mock_dspace_client.count_items_with_bitstream_format(
@@ -623,6 +663,7 @@ class TestDSpaceClient:
     async def test_detect_dspace_version_single_property(self, mock_dspace_client):
         """Test detect_dspace_version uses config/properties/dspace.version and parses values[0]."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"name": "dspace.version", "values": ["7.6"]}
@@ -638,6 +679,7 @@ class TestDSpaceClient:
     async def test_detect_dspace_version_normalize_patch(self, mock_dspace_client):
         """Test detect_dspace_version normalizes 9.0.1 to 9.0."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"name": "dspace.version", "values": ["9.0.1"]}
@@ -649,6 +691,7 @@ class TestDSpaceClient:
     async def test_detect_dspace_version_handles_prefixed_string(self, mock_dspace_client):
         """Test detect_dspace_version extracts version from 'DSpace 7.6'."""
         from unittest.mock import MagicMock
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"name": "dspace.version", "values": ["DSpace 7.6"]}

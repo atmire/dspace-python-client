@@ -162,7 +162,9 @@ async def main() -> None:
         "[yellow]⚠️  This script PERMANENTLY deletes one item and checks that "
         "bundles/bitstreams disappear via the REST API.[/yellow]"
     )
-    console.print("[bold]Required access:[/bold] permission to delete the target item (often admin).")
+    console.print(
+        "[bold]Required access:[/bold] permission to delete the target item (often admin)."
+    )
     console.print("[bold]Supported versions:[/bold] " + ", ".join(TARGET_VERSIONS))
     console.print(
         "[dim]Note: DELETE /api/core/items/{uuid} removes child bundles and bitstreams server-side; "
@@ -238,9 +240,7 @@ async def main() -> None:
     console.print(f"[dim]handle:[/dim] {handle}")
 
     phrase, desc = _confirmation_phrase(item)
-    console.print(
-        f"\n[yellow]To proceed, type {desc}.[/yellow]"
-    )
+    console.print(f"\n[yellow]To proceed, type {desc}.[/yellow]")
     typed = console.input("[bold]Confirmation:[/bold] ")
     if typed != phrase:
         console.print("[red]Confirmation does not match. Aborted.[/red]")
@@ -272,9 +272,13 @@ async def main() -> None:
 
     all_gone = await verify_gone(client, item_uuid, bundles, bitstreams)
     if all_gone:
-        console.print("\n[bold green]Verification complete: stored objects are gone (404).[/bold green]")
+        console.print(
+            "\n[bold green]Verification complete: stored objects are gone (404).[/bold green]"
+        )
     else:
-        console.print("\n[bold red]Verification reported failures; inspect the server or retry.[/bold red]")
+        console.print(
+            "\n[bold red]Verification reported failures; inspect the server or retry.[/bold red]"
+        )
 
     await auth.close()
 

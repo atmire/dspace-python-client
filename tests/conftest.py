@@ -51,7 +51,7 @@ def mock_dspace_client(mock_auth_client):
         csrf_token="mock-csrf-token",
         http_client=mock_auth_client.client,
         target_versions="bleeding-edge",
-        courtesy_delay=0.0  # No delay for testing
+        courtesy_delay=0.0,  # No delay for testing
     )
     return client
 
@@ -63,8 +63,10 @@ def sample_community_data():
         "uuid": "12345678-1234-1234-1234-123456789012",
         "name": "Test Community",
         "metadata": {
-            "dc.title": [{"value": "Test Community", "language": None, "authority": None, "confidence": -1}]
-        }
+            "dc.title": [
+                {"value": "Test Community", "language": None, "authority": None, "confidence": -1}
+            ]
+        },
     }
 
 
@@ -75,8 +77,10 @@ def sample_collection_data():
         "uuid": "87654321-4321-4321-4321-210987654321",
         "name": "Test Collection",
         "metadata": {
-            "dc.title": [{"value": "Test Collection", "language": None, "authority": None, "confidence": -1}]
-        }
+            "dc.title": [
+                {"value": "Test Collection", "language": None, "authority": None, "confidence": -1}
+            ]
+        },
     }
 
 
@@ -87,6 +91,8 @@ def sample_item_data():
         "uuid": "11111111-2222-3333-4444-555555555555",
         "name": "Test Item",
         "metadata": {
-            "dc.title": [{"value": "Test Item", "language": None, "authority": None, "confidence": -1}]
-        }
+            "dc.title": [
+                {"value": "Test Item", "language": None, "authority": None, "confidence": -1}
+            ]
+        },
     }

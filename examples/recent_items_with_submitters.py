@@ -20,8 +20,6 @@ SCRIPT_AUTHORS = "Bram Luyten (Atmire)"
 console = Console()
 
 
-
-
 def get_metadata_value(metadata: dict, key: str) -> str:
     """Extract metadata value, joining multiple values with ||."""
     values = metadata.get(key, [])
@@ -37,15 +35,15 @@ async def get_item_submitter_with_cache(
 ) -> str:
     """
     Get submitter email with intelligent caching.
-    
+
     Note: This works for DSpace 9+ using the embed parameter or direct submitter endpoint.
     For DSpace 7, submitter information is not available via the items API.
-    
+
     Args:
         item_uuid: UUID of the item
         client: DSpace client instance
         submitter_cache: Dict to cache submitter_uuid -> submitter_email mappings
-    
+
     Returns:
         Submitter email address
     """
@@ -55,7 +53,7 @@ async def get_item_submitter_with_cache(
         # Use the embed parameter to get submitter information in one call
         response = await client.client.get(
             f"{client.base_url}/server/api/core/items/{item_uuid}?embed=submitter",
-            headers={"Authorization": f"Bearer {client.jwt_token}"}
+            headers={"Authorization": f"Bearer {client.jwt_token}"},
         )
 
         if response.status_code == 200:
@@ -108,13 +106,15 @@ def generate_csv_data(items_data: list[dict]) -> str:
 
     # Rows
     for item in items_data:
-        writer.writerow([
-            item["uuid"],
-            item["title"],
-            item["date_issued"],
-            item["date_accessioned"],
-            item["submitter_email"],
-        ])
+        writer.writerow(
+            [
+                item["uuid"],
+                item["title"],
+                item["date_issued"],
+                item["date_accessioned"],
+                item["submitter_email"],
+            ]
+        )
 
     return output.getvalue()
 
@@ -126,12 +126,16 @@ async def main():
     # Print script information
     console.print("\n[bold cyan]Recent Items Report with Submitter Information[/bold cyan]")
     console.print("[dim]━" * 50 + "[/dim]")
-    console.print("[green]✓ This script is READ-ONLY - no changes will be made to your DSpace repository[/green]")
+    console.print(
+        "[green]✓ This script is READ-ONLY - no changes will be made to your DSpace repository[/green]"
+    )
     console.print("[green]   - Searches for recently added items[/green]")
     console.print("[green]   - Retrieves submitter information for each item[/green]")
     console.print("[green]   - Exports data to CSV format[/green]")
     console.print("")
-    console.print("[bold]Required Access:[/bold] Admin access is recommended (some items may require admin to view submitter info)")
+    console.print(
+        "[bold]Required Access:[/bold] Admin access is recommended (some items may require admin to view submitter info)"
+    )
     console.print("[bold]Supported Versions:[/bold] " + ", ".join(TARGET_VERSIONS))
     console.print("[bold]Note:[/bold] Submitter information endpoint only exists in DSpace 9.0+")
     console.print("[dim]━" * 50 + "[/dim]\n")
@@ -199,18 +203,25 @@ async def main():
 
             # Validate the input
             if courtesy_delay < 0:
-                console.print("[yellow]⚠️  Invalid value (negative). Using default: 1.0 second[/yellow]")
+                console.print(
+                    "[yellow]⚠️  Invalid value (negative). Using default: 1.0 second[/yellow]"
+                )
                 courtesy_delay = 1.0
             elif courtesy_delay == 0:
                 console.print("[yellow]⚠️  No throttle - maximum speed mode enabled[/yellow]")
             elif courtesy_delay < 0.1:
-                console.print(f"[yellow]⚠️  Very aggressive throttle: {courtesy_delay}s - use with caution[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  Very aggressive throttle: {courtesy_delay}s - use with caution[/yellow]"
+                )
             else:
-                console.print(f"[dim]→ Using throttle: {courtesy_delay} second(s) between API calls[/dim]")
+                console.print(
+                    f"[dim]→ Using throttle: {courtesy_delay} second(s) between API calls[/dim]"
+                )
         except ValueError:
-            console.print(f"[yellow]⚠️  Invalid input '{throttle_input}'. Using default: 1.0 second[/yellow]")
+            console.print(
+                f"[yellow]⚠️  Invalid input '{throttle_input}'. Using default: 1.0 second[/yellow]"
+            )
             courtesy_delay = 1.0
-
 
     # Ask for maximum number of items to retrieve
     max_items_input = console.input(
@@ -240,11 +251,14 @@ async def main():
 
     # Verify server version matches developer-declared versions
     from dspace_client import ServerVersionMismatchError
+
     try:
         await client.verify_server_version(raise_on_mismatch=True)
     except ServerVersionMismatchError as e:
         console.print(f"[red]Version mismatch:[/red] {e}")
-        console.print(f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]")
+        console.print(
+            f"[yellow]This script only works with DSpace versions: {supported_str}[/yellow]"
+        )
         await auth.close()
         return
 
@@ -252,13 +266,21 @@ async def main():
     detected_version = client.last_detected_server_version
 
     if detected_version and detected_version.startswith("7."):
-        console.print("[red]✗[/red] DSpace 7 detected - submitter information is not available via the items API")
-        console.print("[yellow]This script requires DSpace 9+ to retrieve submitter information for archived items.[/yellow]")
-        console.print("[dim]DSpace 7 does not expose submitter data through the items endpoint.[/dim]")
+        console.print(
+            "[red]✗[/red] DSpace 7 detected - submitter information is not available via the items API"
+        )
+        console.print(
+            "[yellow]This script requires DSpace 9+ to retrieve submitter information for archived items.[/yellow]"
+        )
+        console.print(
+            "[dim]DSpace 7 does not expose submitter data through the items endpoint.[/dim]"
+        )
         await auth.close()
         return
     if detected_version:
-        console.print(f"[green]✓[/green] DSpace {detected_version} detected - submitter information available")
+        console.print(
+            f"[green]✓[/green] DSpace {detected_version} detected - submitter information available"
+        )
     else:
         console.print("[yellow]⚠[/yellow] Could not detect DSpace version - continuing anyway")
 
@@ -276,7 +298,9 @@ async def main():
             size=10,
         )
         console.print("[green]✓[/green] Basic search works!")
-        console.print(f"Found {len(results.get('_embedded', {}).get('searchResult', {}).get('_embedded', {}).get('objects', []))} items")
+        console.print(
+            f"Found {len(results.get('_embedded', {}).get('searchResult', {}).get('_embedded', {}).get('objects', []))} items"
+        )
     except Exception as e:
         console.print(f"[red]Basic search failed: {e}[/red]")
         await auth.close()
@@ -348,7 +372,6 @@ async def main():
         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         console=console,
     ) as progress:
-
         process_task = progress.add_task("Processing items...", total=len(all_items))
 
         for item in all_items:
@@ -370,16 +393,20 @@ async def main():
                     submitter_cache,
                 )
 
-                items_data.append({
-                    "uuid": item_uuid,
-                    "title": title,
-                    "date_issued": date_issued,
-                    "date_accessioned": date_accessioned,
-                    "submitter_email": submitter_email,
-                })
+                items_data.append(
+                    {
+                        "uuid": item_uuid,
+                        "title": title,
+                        "date_issued": date_issued,
+                        "date_accessioned": date_accessioned,
+                        "submitter_email": submitter_email,
+                    }
+                )
 
             except Exception as e:
-                console.print(f"[red]Error processing item {item.get('_embedded', {}).get('indexableObject', {}).get('uuid', 'unknown')}: {e}[/red]")
+                console.print(
+                    f"[red]Error processing item {item.get('_embedded', {}).get('indexableObject', {}).get('uuid', 'unknown')}: {e}[/red]"
+                )
 
             progress.update(process_task, advance=1)
 
@@ -393,7 +420,9 @@ async def main():
     total_items = len(items_data)
     if total_items > 0:
         cache_efficiency = 100 * (total_items - unique_submitters) / total_items
-        console.print(f"  Cache efficiency: {total_items - unique_submitters}/{total_items} items ({cache_efficiency:.1f}%)")
+        console.print(
+            f"  Cache efficiency: {total_items - unique_submitters}/{total_items} items ({cache_efficiency:.1f}%)"
+        )
 
     # Generate output
     csv_data = generate_csv_data(items_data)
@@ -405,9 +434,13 @@ async def main():
     else:
         # Offer to save to file for larger datasets
         console.print(f"\n[bold]Found {len(items_data)} items.[/bold]")
-        save_choice = console.input(
-            "[bold cyan]Save to file?[/bold cyan] [dim](y/n, press Enter for yes):[/dim] "
-        ).strip().lower()
+        save_choice = (
+            console.input(
+                "[bold cyan]Save to file?[/bold cyan] [dim](y/n, press Enter for yes):[/dim] "
+            )
+            .strip()
+            .lower()
+        )
 
         if save_choice in ("", "y", "yes"):
             filename = f"recent_items_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"

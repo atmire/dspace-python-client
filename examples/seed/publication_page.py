@@ -96,9 +96,7 @@ def _normalize_metadata(raw_metadata: Any) -> dict[str, list[dict[str, Any]]]:
             if value is None:
                 continue
             if not isinstance(value, str):
-                raise ValueError(
-                    f"Metadata field '{key}' must contain a string or list of strings"
-                )
+                raise ValueError(f"Metadata field '{key}' must contain a string or list of strings")
             entries.append(
                 {
                     "value": value,
@@ -228,7 +226,9 @@ async def run_publication_page(
             console.print("[red]Could not find the built-in 'Anonymous' group.[/red]")
             return False
 
-        preview = Table(title="Publication Page preview", show_header=True, header_style="bold cyan")
+        preview = Table(
+            title="Publication Page preview", show_header=True, header_style="bold cyan"
+        )
         preview.add_column("Type", style="yellow")
         preview.add_column("Name", style="white")
         preview.add_row("Community", community_name)
@@ -249,9 +249,11 @@ async def run_publication_page(
         console.print(metadata_table)
         console.print()
 
-        proceed = console.input(
-            "\n[bold yellow]Proceed with creation? (yes/no):[/bold yellow] "
-        ).strip().lower()
+        proceed = (
+            console.input("\n[bold yellow]Proceed with creation? (yes/no):[/bold yellow] ")
+            .strip()
+            .lower()
+        )
         if proceed not in ("yes", "y"):
             console.print("[yellow]Cancelled.[/yellow]")
             return True
@@ -260,14 +262,27 @@ async def run_publication_page(
 
         community = await client.create_community(
             name=community_name,
-            metadata={"dc.title": [{"value": community_name, "language": None, "authority": None, "confidence": -1}]},
+            metadata={
+                "dc.title": [
+                    {"value": community_name, "language": None, "authority": None, "confidence": -1}
+                ]
+            },
         )
         console.print(f"  [green]✓[/green] Community: {community['uuid']}")
 
         collection = await client.create_collection(
             name=collection_name,
             parent_community_uuid=community["uuid"],
-            metadata={"dc.title": [{"value": collection_name, "language": None, "authority": None, "confidence": -1}]},
+            metadata={
+                "dc.title": [
+                    {
+                        "value": collection_name,
+                        "language": None,
+                        "authority": None,
+                        "confidence": -1,
+                    }
+                ]
+            },
         )
         console.print(f"  [green]✓[/green] Collection: {collection['uuid']}")
 

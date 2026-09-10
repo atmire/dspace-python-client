@@ -60,9 +60,7 @@ def load_external_config(console: Console, *, prompt: bool) -> ExternalApiConfig
                 ).strip()
 
     if not email:
-        _msg = (
-            "FULLTEXT_UNPAYWALL_EMAIL is required (Unpaywall and OpenAlex expect a mailto)."
-        )
+        _msg = "FULLTEXT_UNPAYWALL_EMAIL is required (Unpaywall and OpenAlex expect a mailto)."
         raise ValueError(_msg)
 
     return ExternalApiConfig(

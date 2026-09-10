@@ -123,7 +123,10 @@ async def main() -> None:
                         task_id,
                         description=f"Items: {total_running} | With PDF: {with_pdf_running} | New: {new_count} | Updated: {updated_count}",
                     )
-                progress.update(task_id, description=f"Done. Items: {total_running} | With PDF: {with_pdf_running}")
+                progress.update(
+                    task_id,
+                    description=f"Done. Items: {total_running} | With PDF: {with_pdf_running}",
+                )
     except OAIError as e:
         console.print(f"[red]OAI error: {e.code} - {e.message}[/red]")
         return

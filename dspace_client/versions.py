@@ -1,6 +1,5 @@
 """Single source of truth for supported DSpace versions and RestContract branches."""
 
-
 # Keys accepted as target_versions / docs fetch version arguments.
 SUPPORTED_VERSIONS: dict[str, list[str]] = {
     "bleeding-edge": ["bleeding-edge"],

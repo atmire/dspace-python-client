@@ -21,6 +21,7 @@ from dspace_client.oai import (
 
 # --- XML parsing ---
 
+
 def test_check_error_raises_on_error_element():
     root = ET.fromstring(
         '<?xml version="1.0"?>'
@@ -101,6 +102,7 @@ def test_parse_list_records():
 
 # --- dc:format and has_pdf ---
 
+
 def test_get_dc_formats_from_oai_dc():
     metadata = ET.fromstring(
         "<metadata xmlns:oai_dc='http://www.openarchives.org/OAI/2.0/oai_dc/' "
@@ -119,8 +121,7 @@ def test_get_dc_formats_from_oai_dc():
 def test_get_dc_formats_empty():
     assert get_dc_formats(None) == []
     metadata = ET.fromstring(
-        "<metadata xmlns:dc='http://purl.org/dc/elements/1.1/'>"
-        "<dc></dc></metadata>"
+        "<metadata xmlns:dc='http://purl.org/dc/elements/1.1/'><dc></dc></metadata>"
     )
     assert get_dc_formats(metadata) == []
 
@@ -151,6 +152,7 @@ def test_record_has_pdf_deleted():
 
 
 # --- Cache ---
+
 
 def test_repository_cache_id():
     # Normalized host with dots and non-alnum replaced by underscore

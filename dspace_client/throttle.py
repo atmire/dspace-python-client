@@ -99,8 +99,7 @@ class ThrottleController:
         p95_latency = sorted_times[idx] if sorted_times else 0.0
 
         had_429_or_5xx = any(
-            (code is not None and (code == 429 or 500 <= code < 600))
-            for code in recent_status
+            (code is not None and (code == 429 or 500 <= code < 600)) for code in recent_status
         )
 
         old_delay = self.current_delay
@@ -112,9 +111,7 @@ class ThrottleController:
                 self.config.max_delay,
                 self.current_delay * self.config.ramp_down_factor,
             )
-            reason = (
-                "saw 429/5xx" if had_429_or_5xx else f"high p95 latency={p95_latency:.2f}s"
-            )
+            reason = "saw 429/5xx" if had_429_or_5xx else f"high p95 latency={p95_latency:.2f}s"
             if new_delay > old_delay * 1.01:
                 console.print(
                     f"[dim]Adaptive throttle: slowing down to {new_delay:.2f}s ({reason}).[/dim]"
@@ -135,7 +132,4 @@ class ThrottleController:
                     f"(p95 latency={p95_latency:.2f}s).[/dim]"
                 )
 
-        self.current_delay = max(
-            self.config.min_delay, min(self.config.max_delay, new_delay)
-        )
-
+        self.current_delay = max(self.config.min_delay, min(self.config.max_delay, new_delay))

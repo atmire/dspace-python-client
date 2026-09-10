@@ -1,7 +1,5 @@
 """Tests for RestPDFCountCache."""
 
-
-
 from dspace_client.rest_pdf_cache import (
     RestPDFCountCache,
     _normalize_base_url,

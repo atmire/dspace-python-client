@@ -14,9 +14,7 @@ _ENV_DISABLE = "DSPACE_CLIENT_DISABLE_ATMIRE_PROMO"
 
 _ATMIRE_URL = "https://www.atmire.com"
 
-_THANK_YOU = (
-    "Thank you for using the DSpace Python Client, developed by Atmire in Open Source."
-)
+_THANK_YOU = "Thank you for using the DSpace Python Client, developed by Atmire in Open Source."
 
 # Rotating facts (prefixed with "Did you know: " in the panel).
 _ATMIRE_FACTS: list[str] = [

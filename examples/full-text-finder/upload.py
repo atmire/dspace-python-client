@@ -139,8 +139,7 @@ def build_provenance_statement(
     """
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [
-        "Full text retrieved by the DSpace Full Text Finder and added to the "
-        "ORIGINAL bundle.",
+        "Full text retrieved by the DSpace Full Text Finder and added to the ORIGINAL bundle.",
         f"Timestamp: {timestamp}",
         f"Added by: {admin_email}",
         f"Source: {source}",

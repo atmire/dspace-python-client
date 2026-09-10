@@ -29,10 +29,14 @@ def prompt_upload(console: Console) -> str:
     """
     Returns 'upload', 'skip', or 'quit'.
     """
-    s = console.input(
-        "[bold cyan]Upload this file to DSpace?[/bold cyan] "
-        "[dim]([Y]es / [N]o / [Q]uit):[/dim] "
-    ).strip().lower()
+    s = (
+        console.input(
+            "[bold cyan]Upload this file to DSpace?[/bold cyan] "
+            "[dim]([Y]es / [N]o / [Q]uit):[/dim] "
+        )
+        .strip()
+        .lower()
+    )
     if s in ("q", "quit"):
         return "quit"
     if s in ("n", "no", ""):

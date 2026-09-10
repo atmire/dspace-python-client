@@ -139,7 +139,9 @@ async def process_item(
         return "dry_run"
 
     try:
-        data, _download_name = await download_full_text(ext_http, hit.url, timeout_s=cfg.timeout_seconds)
+        data, _download_name = await download_full_text(
+            ext_http, hit.url, timeout_s=cfg.timeout_seconds
+        )
     except Exception as e:
         console.print(f"[red]Download failed: {e}[/red]")
         log_line(log_file, f"FAIL item={item_uuid} reason=download_error detail={e!s}")
@@ -197,7 +199,9 @@ async def process_item(
                 f"algorithm={checksum.algorithm} stored={checksum.stored!r} local={checksum.local!r}",
             )
         else:
-            console.print(f"[green]Checksum verified[/green] ({checksum.algorithm}={checksum.stored})")
+            console.print(
+                f"[green]Checksum verified[/green] ({checksum.algorithm}={checksum.stored})"
+            )
             log_line(
                 log_file,
                 f"CHECKSUM_OK item={item_uuid} bitstream_uuid={bs_uuid} "
@@ -270,18 +274,26 @@ def _resolve_no_user_verify_interactive(*, dry_run: bool, no_user_verify_flag: b
     if dry_run:
         console.print("[dim]Dry-run: no uploads; skipping preview question.[/dim]")
         return True
-    ans = console.input(
-        "[bold cyan]Do you want to see each individual PDF before it gets added to the item?[/bold cyan]\n"
-        "[dim](Press Enter for Yes — type No to add PDFs automatically without preview):[/dim] "
-    ).strip().lower()
+    ans = (
+        console.input(
+            "[bold cyan]Do you want to see each individual PDF before it gets added to the item?[/bold cyan]\n"
+            "[dim](Press Enter for Yes — type No to add PDFs automatically without preview):[/dim] "
+        )
+        .strip()
+        .lower()
+    )
     return ans in ("no", "n")
 
 
 def _resolve_run_mode_interactive() -> tuple[RunMode, str | None]:
     """Ask for mode and optional item UUID (after repository URL is known)."""
-    choice = console.input(
-        "[bold cyan]Mode[/bold cyan] [dim]([S]ingle first match / [B]ulk / [I]tem UUID):[/dim] "
-    ).strip().lower()
+    choice = (
+        console.input(
+            "[bold cyan]Mode[/bold cyan] [dim]([S]ingle first match / [B]ulk / [I]tem UUID):[/dim] "
+        )
+        .strip()
+        .lower()
+    )
     if choice in ("b", "bulk", "r", "repository"):
         return "bulk", None
     if choice in ("i", "item", "u", "uuid"):
@@ -318,9 +330,12 @@ async def run_async(
     )
 
     # 2) Repository URL and credentials (before mode / UUID)
-    base_url = console.input(
-        "[bold cyan]DSpace base URL[/bold cyan] [dim](Enter for https://demo.dspace.org):[/dim] "
-    ).strip() or "https://demo.dspace.org"
+    base_url = (
+        console.input(
+            "[bold cyan]DSpace base URL[/bold cyan] [dim](Enter for https://demo.dspace.org):[/dim] "
+        ).strip()
+        or "https://demo.dspace.org"
+    )
     if urlparse(base_url).hostname == "demo.dspace.org":
         console.print("[dim]Using demo admin account.[/dim]")
         username = "dspacedemo+admin@gmail.com"
@@ -430,7 +445,9 @@ async def run_async(
                     return
                 has_pdf = await item_has_pdf_in_original(client, uid, pdf_format_id)
                 if has_pdf:
-                    console.print("[yellow]Item already has a PDF in ORIGINAL; nothing to do.[/yellow]")
+                    console.print(
+                        "[yellow]Item already has a PDF in ORIGINAL; nothing to do.[/yellow]"
+                    )
                     log_line(log_f, f"SKIP item={uid} reason=already_has_pdf")
                     return
                 outcome = await process_item(
@@ -466,7 +483,9 @@ async def run_async(
                 n += 1
                 metadata = full.get("metadata") or {}
                 title = first_metadata_value(metadata, "dc.title") or "(no title)"
-                console.print(Panel(f"{title}\n[dim]{doi}[/dim]\n[dim]{uid}[/dim]", title="Candidate"))
+                console.print(
+                    Panel(f"{title}\n[dim]{doi}[/dim]\n[dim]{uid}[/dim]", title="Candidate")
+                )
                 outcome = await process_item(
                     client=client,
                     ext_http=ext_http,

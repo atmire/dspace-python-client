@@ -116,7 +116,9 @@ class DataFactory:
             return works[0].title
         return f"Studies in {subfield}: An Introduction"
 
-    def get_item_metadata(self, title: str, discipline: Discipline, subfield_index: int = 0) -> dict[str, Any]:
+    def get_item_metadata(
+        self, title: str, discipline: Discipline, subfield_index: int = 0
+    ) -> dict[str, Any]:
         subfield = (
             discipline.subfields[subfield_index % len(discipline.subfields)]
             if discipline.subfields
@@ -311,7 +313,8 @@ def build_mega_metadata(
     for i in range(50):
         descriptions.append(
             {
-                "value": ("This is description number " f"{i + 1} for the mega-metadata test item. ") * 5,
+                "value": (f"This is description number {i + 1} for the mega-metadata test item. ")
+                * 5,
                 "language": "en",
                 "authority": None,
                 "confidence": -1,

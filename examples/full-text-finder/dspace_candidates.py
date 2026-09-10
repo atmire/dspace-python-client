@@ -76,7 +76,9 @@ async def item_has_pdf_in_original(
             bitstreams_data = await client.get_bundle_bitstreams(bundle_uuid, embed_format=True)
         except Exception:
             try:
-                bitstreams_data = await client.get_bundle_bitstreams(bundle_uuid, embed_format=False)
+                bitstreams_data = await client.get_bundle_bitstreams(
+                    bundle_uuid, embed_format=False
+                )
             except Exception:
                 continue
         bitstreams = bitstreams_data.get("_embedded", {}).get("bitstreams", [])

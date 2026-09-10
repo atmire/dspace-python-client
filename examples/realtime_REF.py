@@ -264,9 +264,7 @@ async def fetch_bitstreams_with_conditions(client, bundle_uuid: str) -> list[dic
             headers=client._get_headers(include_csrf=False),
         )
     except httpx.RequestError as e:
-        console.print(
-            f"[yellow]⚠[/yellow]  bitstreams fetch failed for bundle {bundle_uuid}: {e}"
-        )
+        console.print(f"[yellow]⚠[/yellow]  bitstreams fetch failed for bundle {bundle_uuid}: {e}")
         return []
     if response.status_code in (401, 403, 404):
         return []
@@ -284,9 +282,7 @@ async def fetch_bitstreams_with_conditions(client, bundle_uuid: str) -> list[dic
     return data.get("bitstreams", []) or []
 
 
-async def fetch_access_status(
-    client, bitstream_uuid: str
-) -> tuple[str | None, date | None]:
+async def fetch_access_status(client, bitstream_uuid: str) -> tuple[str | None, date | None]:
     """Fallback: GET .../core/bitstreams/{uuid}/accessStatus. Returns (status, embargoDate)."""
     url = f"{client.base_url}/server/api/core/bitstreams/{bitstream_uuid}/accessStatus"
     try:
@@ -431,7 +427,9 @@ async def prompt_inputs() -> dict:
         else:
             password = getpass.getpass("Password: ")
     else:
-        console.print("[dim]→ Anonymous mode: only publicly discoverable items will be scanned.[/dim]")
+        console.print(
+            "[dim]→ Anonymous mode: only publicly discoverable items will be scanned.[/dim]"
+        )
 
     current_year = datetime.now().year
     year_input = console.input(
@@ -649,9 +647,12 @@ async def main() -> None:
                     type_recorded = get_metadata_value(metadata, "dc.type")
                     uri = get_metadata_value(metadata, "dc.identifier.uri")
 
-                    has_dep, bitstream_count, status, embargo_end = await collapse_to_most_permissive(
-                        client, uuid
-                    )
+                    (
+                        has_dep,
+                        bitstream_count,
+                        status,
+                        embargo_end,
+                    ) = await collapse_to_most_permissive(client, uuid)
                     issued_year = parse_issued_year(date_issued)
                     issued_date = parse_issued_date(date_issued)
                     bucket, notes = classify_item(

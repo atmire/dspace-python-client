@@ -9,9 +9,10 @@ from dspace_client import create_validated_client
 
 @pytest.mark.asyncio
 async def test_create_validated_client_forwards_timeout():
-    with patch("dspace_client.DSpaceAuthClient") as auth_cls, patch(
-        "dspace_client.DSpaceClient"
-    ) as client_cls:
+    with (
+        patch("dspace_client.DSpaceAuthClient") as auth_cls,
+        patch("dspace_client.DSpaceClient") as client_cls,
+    ):
         auth_instance = MagicMock()
         auth_instance.show_atmire_promo = False
         auth_instance.authenticate = AsyncMock(return_value=("jwt", {"authenticated": True}))
@@ -39,9 +40,11 @@ async def test_create_validated_client_forwards_timeout():
 
 @pytest.mark.asyncio
 async def test_create_validated_client_promo_opt_in():
-    with patch("dspace_client.DSpaceAuthClient") as auth_cls, patch(
-        "dspace_client.DSpaceClient"
-    ) as client_cls, patch("dspace_client.show_atmire_promo_start") as promo_start:
+    with (
+        patch("dspace_client.DSpaceAuthClient") as auth_cls,
+        patch("dspace_client.DSpaceClient") as client_cls,
+        patch("dspace_client.show_atmire_promo_start") as promo_start,
+    ):
         auth_instance = MagicMock()
         auth_instance.show_atmire_promo = False
         auth_instance.authenticate = AsyncMock(return_value=("jwt", {"authenticated": True}))
@@ -65,9 +68,11 @@ async def test_create_validated_client_promo_opt_in():
 
 @pytest.mark.asyncio
 async def test_create_validated_client_promo_enabled():
-    with patch("dspace_client.DSpaceAuthClient") as auth_cls, patch(
-        "dspace_client.DSpaceClient"
-    ) as client_cls, patch("dspace_client.show_atmire_promo_start") as promo_start:
+    with (
+        patch("dspace_client.DSpaceAuthClient") as auth_cls,
+        patch("dspace_client.DSpaceClient") as client_cls,
+        patch("dspace_client.show_atmire_promo_start") as promo_start,
+    ):
         auth_instance = MagicMock()
         auth_instance.show_atmire_promo = False
         auth_instance.authenticate = AsyncMock(return_value=("jwt", {"authenticated": True}))

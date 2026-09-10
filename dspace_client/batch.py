@@ -25,7 +25,7 @@ class BatchItemCreator:
     ):
         """
         Initialize batch item creator.
-        
+
         Args:
             client: DSpace API client
             config: Concurrency configuration
@@ -45,11 +45,12 @@ class BatchItemCreator:
         item_data: list[dict[str, Any]],
         progress: Progress | None = None,
         task_id: int | None = None,
-        on_metrics_sample: Callable[[int, int, PerformanceMetrics], None | Awaitable[None]] | None = None,
+        on_metrics_sample: Callable[[int, int, PerformanceMetrics], None | Awaitable[None]]
+        | None = None,
     ) -> tuple[list[dict], list[dict], list[dict]]:
         """
         Create items in batches with adaptive concurrency.
-        
+
         Args:
             collection_uuids: List of collection UUIDs to create items in
             item_data: List of item data dictionaries with keys:
@@ -61,7 +62,7 @@ class BatchItemCreator:
             task_id: Progress task ID (optional)
             on_metrics_sample: Optional callback ``(completed, total, metrics)`` invoked whenever
                 progress metrics are logged (every 50 completions and at the end). May be async.
-        
+
         Returns:
             Tuple of (created_items, created_bundles, created_bitstreams)
         """
@@ -72,7 +73,9 @@ class BatchItemCreator:
         # readouts integrate with the progress bar instead of fighting a second console.
         out = progress.console if progress is not None else console
 
-        out.print(f"\n[cyan]Starting batch creation of {total_items} items with adaptive concurrency[/cyan]")
+        out.print(
+            f"\n[cyan]Starting batch creation of {total_items} items with adaptive concurrency[/cyan]"
+        )
         out.print(
             f"[dim]Initial concurrency: {self.config.initial}, "
             f"range: {self.config.min_concurrency}-{self.config.max_concurrency} "
@@ -107,7 +110,7 @@ class BatchItemCreator:
         # Process specs in batches
         completed = 0
         for i in range(0, len(specs), batch_size):
-            batch_specs = specs[i:i + batch_size]
+            batch_specs = specs[i : i + batch_size]
 
             # Execute batch with concurrency control
             batch_results = await self._execute_batch_with_concurrency(batch_specs)
@@ -133,13 +136,16 @@ class BatchItemCreator:
                 completed, total_items, out=out, on_metrics_sample=on_metrics_sample
             )
 
-        out.print(f"[green]✓[/green] Batch creation complete: {len(self.created_items)} items created")
+        out.print(
+            f"[green]✓[/green] Batch creation complete: {len(self.created_items)} items created"
+        )
         return self.created_items, self.created_bundles, self.created_bitstreams
 
     async def _execute_batch_with_concurrency(
         self, specs: list[tuple[dict[str, Any], str]]
     ) -> list[dict]:
         """Execute a batch of item specs with concurrency control."""
+
         async def execute_with_semaphore(spec: tuple[dict[str, Any], str]):
             item_info, collection_uuid = spec
             duration = 0.0
@@ -176,7 +182,7 @@ class BatchItemCreator:
     ) -> dict:
         """
         Create a single item with bundle and optional bitstream (atomic operation).
-        
+
         This is the core operation that gets executed concurrently.
         """
         title = item_info["title"]
@@ -216,7 +222,8 @@ class BatchItemCreator:
         total: int,
         *,
         out: Console | None = None,
-        on_metrics_sample: Callable[[int, int, PerformanceMetrics], None | Awaitable[None]] | None = None,
+        on_metrics_sample: Callable[[int, int, PerformanceMetrics], None | Awaitable[None]]
+        | None = None,
     ) -> None:
         """Show current performance metrics and optionally notify ``on_metrics_sample``."""
         out = out or console

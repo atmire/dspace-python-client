@@ -122,11 +122,13 @@ def _parse_list_metadata_formats(root: ET.Element) -> list[dict[str, str]]:
         return []
     result = []
     for fmt in fmt_list.findall("oai:metadataFormat", NS):
-        result.append({
-            "metadataPrefix": _find_text(fmt, "oai:metadataPrefix"),
-            "schema": _find_text(fmt, "oai:schema"),
-            "metadataNamespace": _find_text(fmt, "oai:metadataNamespace"),
-        })
+        result.append(
+            {
+                "metadataPrefix": _find_text(fmt, "oai:metadataPrefix"),
+                "schema": _find_text(fmt, "oai:schema"),
+                "metadataNamespace": _find_text(fmt, "oai:metadataNamespace"),
+            }
+        )
     return result
 
 
@@ -163,12 +165,14 @@ def _parse_list_records(root: ET.Element) -> ListRecordsResult:
         identifier = _find_text(header, "oai:identifier")
         datestamp = _find_text(header, "oai:datestamp")
         metadata_el = rec_el.find("oai:metadata", NS)
-        records.append(OAIRecord(
-            identifier=identifier,
-            datestamp=datestamp,
-            status=status or None,
-            metadata=metadata_el,
-        ))
+        records.append(
+            OAIRecord(
+                identifier=identifier,
+                datestamp=datestamp,
+                status=status or None,
+                metadata=metadata_el,
+            )
+        )
     res_el = list_records.find("oai:resumptionToken", NS)
     res_token = _parse_resumption_token(res_el)
     return ListRecordsResult(records=records, resumption_token=res_token)
@@ -343,9 +347,7 @@ def record_has_pdf(record: OAIRecord) -> bool:
     if record.status == "deleted":
         return False
     formats = get_dc_formats(record.metadata)
-    return any(
-        f.strip().lower() == PDF_MIME for f in formats if f
-    )
+    return any(f.strip().lower() == PDF_MIME for f in formats if f)
 
 
 class OAIRecordParsed(TypedDict):
@@ -396,6 +398,7 @@ async def count_items_with_pdf_via_oai(
 
 # --- Persistent CSV cache for PDF counts ---
 
+
 def _repository_cache_id(base_url: str) -> str:
     """Return a safe filename fragment for the repository (stable per base_url)."""
     normalized = _normalize_base_url(base_url).lower()
@@ -424,9 +427,14 @@ class OAIPDFCountCache:
     ):
         self.base_url = _normalize_base_url(base_url)
         self._repo_id = _repository_cache_id(self.base_url)
-        self._cache_dir = Path(cache_dir) if cache_dir else Path.home() / ".cache" / "dspace-oai-pdf"
+        self._cache_dir = (
+            Path(cache_dir) if cache_dir else Path.home() / ".cache" / "dspace-oai-pdf"
+        )
         self._cache_path = self._cache_dir / f"{self.CACHE_FILENAME_PREFIX}{self._repo_id}.csv"
-        self._last_until_path = self._cache_dir / f"{self.CACHE_FILENAME_PREFIX}{self._repo_id}_{self.LAST_UNTIL_FILENAME}"
+        self._last_until_path = (
+            self._cache_dir
+            / f"{self.CACHE_FILENAME_PREFIX}{self._repo_id}_{self.LAST_UNTIL_FILENAME}"
+        )
         self._data: dict[str, dict[str, Any]] = {}  # identifier -> { datestamp, has_pdf }
         self._last_until: str | None = None
 
@@ -478,11 +486,13 @@ class OAIPDFCountCache:
             writer = csv.DictWriter(f, fieldnames=["identifier", "datestamp", "has_pdf"])
             writer.writeheader()
             for ident, entry in self._data.items():
-                writer.writerow({
-                    "identifier": ident,
-                    "datestamp": entry["datestamp"],
-                    "has_pdf": "1" if entry["has_pdf"] else "0",
-                })
+                writer.writerow(
+                    {
+                        "identifier": ident,
+                        "datestamp": entry["datestamp"],
+                        "has_pdf": "1" if entry["has_pdf"] else "0",
+                    }
+                )
         os.replace(tmp_csv, self._cache_path)
         if self._last_until is not None:
             tmp_json = self._last_until_path.with_suffix(".json.tmp")

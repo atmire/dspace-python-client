@@ -95,9 +95,7 @@ class RestPDFCountCache:
             writer = csv.DictWriter(f, fieldnames=["item_uuid", "has_pdf"])
             writer.writeheader()
             for uid, has_pdf in self._data.items():
-                writer.writerow(
-                    {"item_uuid": uid, "has_pdf": "1" if has_pdf else "0"}
-                )
+                writer.writerow({"item_uuid": uid, "has_pdf": "1" if has_pdf else "0"})
         os.replace(tmp_path, self._cache_path)
 
     def totals(self) -> tuple[int, int]:

@@ -123,9 +123,11 @@ async def run_minispace(
         console.print(table)
         console.print()
 
-        confirm = console.input(
-            "[bold yellow]Proceed with creation? (yes/no):[/bold yellow] "
-        ).strip().lower()
+        confirm = (
+            console.input("[bold yellow]Proceed with creation? (yes/no):[/bold yellow] ")
+            .strip()
+            .lower()
+        )
         if confirm not in ("yes", "y"):
             console.print("[yellow]Cancelled.[/yellow]")
             return True
@@ -217,21 +219,25 @@ async def run_minispace(
         summary = f"""[bold cyan]Created[/bold cyan]
 
 [yellow]Community[/yellow]  {community_uuid}
-  {base_url.rstrip('/')}/communities/{community_uuid}
+  {base_url.rstrip("/")}/communities/{community_uuid}
 
 [yellow]Collection[/yellow] {collection_uuid}
-  {base_url.rstrip('/')}/collections/{collection_uuid}
+  {base_url.rstrip("/")}/collections/{collection_uuid}
 
 [yellow]Item[/yellow]       {item_uuid}
-  {base_url.rstrip('/')}/items/{item_uuid}
+  {base_url.rstrip("/")}/items/{item_uuid}
 
-[yellow]Bitstream[/yellow]  {bitstream['uuid']}
+[yellow]Bitstream[/yellow]  {bitstream["uuid"]}
 """
         console.print(Panel(summary, title="Summary", border_style="green"))
 
-        cleanup = console.input(
-            "\n[bold yellow]Delete the community (cascades to children)? (yes/no):[/bold yellow] "
-        ).strip().lower()
+        cleanup = (
+            console.input(
+                "\n[bold yellow]Delete the community (cascades to children)? (yes/no):[/bold yellow] "
+            )
+            .strip()
+            .lower()
+        )
         if cleanup not in ("yes", "y"):
             console.print("[cyan]Cleanup skipped.[/cyan]")
             return True
