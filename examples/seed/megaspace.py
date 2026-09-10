@@ -47,8 +47,10 @@ _SEED_DIR = Path(__file__).resolve().parent
 if str(_SEED_DIR) not in sys.path:
     sys.path.insert(0, str(_SEED_DIR))
 
-from seed_client import connect_seed_client  # noqa: E402
-from seed_data import (  # noqa: E402
+import contextlib
+
+from seed_client import connect_seed_client
+from seed_data import (
     DEFAULT_SEED_HTTP_TIMEOUT,
     DataFactory,
     Discipline,
@@ -782,10 +784,8 @@ async def run_megaspace(
 
         console.print("\n[yellow]Cleaning up…[/yellow]")
         for uid in created_eperson_uuids:
-            try:
+            with contextlib.suppress(DSpaceAPIError):
                 await client.delete_eperson(uid)
-            except DSpaceAPIError:
-                pass
         if created_top_community_uuid:
             await client.delete_community(created_top_community_uuid)
         console.print("[green]✓ EPeople and community removed. Collection groups cascade.[/green]")

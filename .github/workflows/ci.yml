@@ -56,26 +56,6 @@ jobs:
       - name: Check formatting
         run: ruff format --check .
 
-      # Informational: ~327 findings remain from before the rule set was tuned.
-      # Flip this to gating (drop continue-on-error) once that backlog is cleared.
+      # Gating: the backlog is cleared, so any finding is new.
       - name: Lint
-        id: lint
-        continue-on-error: true
         run: ruff check . --output-format=github
-
-      - name: Lint summary
-        if: always()
-        run: |
-          {
-            echo "### ruff check"
-            echo
-            if [ "${{ steps.lint.outcome }}" = "success" ]; then
-              echo "No findings. Consider making this step gating."
-            else
-              echo "Findings below are informational and do not fail the build."
-              echo
-              echo '```'
-              ruff check . --statistics || true
-              echo '```'
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"

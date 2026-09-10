@@ -54,9 +54,7 @@ def is_likely_pdf_url(u: str) -> bool:
         pass
     if "/pdf" in lower:
         return True
-    if "pdf=" in lower:
-        return True
-    return False
+    return "pdf=" in lower
 
 
 @dataclass

@@ -18,7 +18,7 @@ async def prompt_and_authenticate(
     password: str,
     *,
     max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
-    password_prompt: str = "Admin password: ",
+    password_prompt: str = "Admin password: ",  # noqa: S107 - a prompt label, not a password
     console: Console | None = None,
 ) -> tuple[str, dict]:
     """

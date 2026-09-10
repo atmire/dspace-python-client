@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from rich.console import Console  # noqa: TC002  # runtime use in load_external_config
+from rich.console import Console  # runtime use in load_external_config
 
 
 @dataclass(frozen=True)

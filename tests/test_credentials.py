@@ -40,12 +40,14 @@ async def test_prompt_and_authenticate_fails_after_three_wrong_passwords():
         side_effect=AuthenticationError("Invalid username or password.", status_code=401)
     )
 
-    with patch(
-        "dspace_client.credentials.getpass.getpass",
-        side_effect=["bad2", "bad3"],
+    with (
+        patch(
+            "dspace_client.credentials.getpass.getpass",
+            side_effect=["bad2", "bad3"],
+        ),
+        pytest.raises(AuthenticationError, match="after 3 attempts"),
     ):
-        with pytest.raises(AuthenticationError, match="after 3 attempts"):
-            await prompt_and_authenticate(auth, "admin@example.com", "bad1", console=None)
+        await prompt_and_authenticate(auth, "admin@example.com", "bad1", console=None)
 
     assert auth.authenticate.await_count == 3
 

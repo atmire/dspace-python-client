@@ -48,10 +48,7 @@ def _all_metadata_values(metadata: dict, key: str) -> list[str]:
     if not isinstance(vals, list):
         return result
     for v in vals:
-        if isinstance(v, dict):
-            s = str(v.get("value") or "").strip()
-        else:
-            s = str(v).strip()
+        s = str(v.get("value") or "").strip() if isinstance(v, dict) else str(v).strip()
         if s:
             result.append(s)
     return result

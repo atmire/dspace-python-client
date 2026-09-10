@@ -86,6 +86,37 @@ ignore = [
     "FBT001", "FBT002", "FBT003",
     # Complexity thresholds. Informative when read deliberately, but not worth gating on.
     "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+    # `ruff format` owns line length. What it leaves over-length are strings, URLs and
+    # comments it will not split, so E501 only ever fires on things a human must accept.
+    "E501",
+    # The "magic values" here are HTTP status codes (200, 404, 429) and tuned algorithm
+    # thresholds in the concurrency controller. `status_code != 200` is clearer as a
+    # literal than behind a constant, and renaming them in auth/HTTP paths would be churn
+    # with real risk for no readability gain.
+    "PLR2004",
+    # Broad `except Exception` is deliberate at the boundaries this codebase has: the
+    # per-item batch handler (one bad item must not kill the run), the docs CLI, and
+    # version detection. Narrowing them would change behaviour against real repositories.
+    "BLE001",
+    # `return` inside `try` rather than an `else:` block. Purely stylistic.
+    "TRY300",
+    # Rewriting readable append-loops that build dict literals into comprehensions makes
+    # them harder to read for a micro-optimisation that never shows up here.
+    "PERF401",
+    # Unused arguments are part of published signatures (`should_ramp_down(metrics)`,
+    # `validate_before_call(...)`); renaming or dropping them would be a breaking change.
+    "ARG002", "ARG001",
+    # Moving imports into `if TYPE_CHECKING:` blocks. Marginal, and easy to get wrong in
+    # modules whose annotations are evaluated at runtime.
+    "TC001", "TC002", "TC003",
+    # Imports inside functions are deliberate here: breaking import cycles, keeping CLI
+    # startup fast, and importing optional extras only when a code path needs them.
+    "PLC0415",
+    # Arrows, en-dashes and check marks in console output are intentional, not typos.
+    "RUF001", "RUF002", "RUF003",
+    # git is invoked by name on purpose; it is a documented prerequisite and must come
+    # from the user's PATH rather than a hardcoded absolute path.
+    "S607",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -95,6 +126,11 @@ ignore = [
 # S314: the XML the tests parse is hardcoded fixture data, not untrusted input.
 "tests/**" = [
     "INP001", "SLF001", "PLR2004", "S105", "S106", "S107", "ARG001", "ARG002", "S314",
+    # pytest style preferences that fight the existing suite's conventions.
+    "PT006", "PT018",
+    # Some tests put example directories on sys.path before importing from them, so
+    # their imports cannot all sit at the top of the file.
+    "E402",
 ]
 # Examples are standalone scripts, not a package: they use demo credentials against
 # throwaway instances and local naive timestamps for filenames and console output.
@@ -103,6 +139,29 @@ ignore = [
 # That is the intended behaviour, and logging each miss would be pure noise.
 "examples/**" = [
     "INP001", "PLR2004", "S105", "S106", "DTZ005", "DTZ007", "BLE001", "S110", "S112",
+    # Examples are teaching material first. `open(filename)` and `os.path.join` are more
+    # widely understood than the pathlib equivalents; the library itself uses pathlib.
+    "PTH107", "PTH110", "PTH118", "PTH123",
+    # Scripts adjust sys.path before importing siblings, so imports cannot all be at top.
+    "E402",
+    # Raising ValueError for bad input is the established contract in these scripts;
+    # switching to TypeError would break callers that catch it.
+    "TRY004", "TRY301",
+    # Example scripts reach into client internals to demonstrate behaviour.
+    "SLF001",
+    "PTH105",
+    # Session log files are opened once and closed at the end of the run, so they cannot
+    # use a context manager; the handle is passed around deliberately.
+    "SIM115",
+    # Opening the user's PDF viewer on a file the script itself just downloaded. The
+    # argument is a local path, never user-supplied text, and no shell is involved.
+    "S603", "S606",
+    # Seed data is deliberately random-but-not-cryptographic; it is test content.
+    "S311",
+    # Module-level caches for short-lived API access tokens, guarded by expiry checks.
+    "PLW0602", "PLW0603",
+    # Rebinding the loop variable while normalising a value is intentional and local.
+    "PLW2901",
 ]
 
 [tool.mypy]

@@ -48,8 +48,7 @@ def _normalize_initials(s: str) -> str:
         return ""
     # Strip accents, remove periods and collapse spaces, then rejoin with single space
     base = _strip_accents(s)
-    cleaned = " ".join(base.replace(".", " ").split()).upper()
-    return cleaned
+    return " ".join(base.replace(".", " ").split()).upper()
 
 
 def _family_name_compact(family: str) -> str:

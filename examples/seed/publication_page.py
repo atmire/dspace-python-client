@@ -62,8 +62,8 @@ _SEED_DIR = Path(__file__).resolve().parent
 if str(_SEED_DIR) not in sys.path:
     sys.path.insert(0, str(_SEED_DIR))
 
-from seed_client import connect_seed_client  # noqa: E402
-from seed_data import DEFAULT_SEED_HTTP_TIMEOUT, DataFactory, load_seed_pack  # noqa: E402
+from seed_client import connect_seed_client
+from seed_data import DEFAULT_SEED_HTTP_TIMEOUT, DataFactory, load_seed_pack
 
 console = Console()
 DEFAULT_CONFIG = _SEED_DIR / "publication-page-config.json"

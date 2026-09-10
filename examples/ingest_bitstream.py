@@ -156,7 +156,7 @@ async def _get_json_paged(
     size = 100
     embed_key, alt_key = list_key_embed
     while True:
-        resp = await client._request(  # noqa: SLF001
+        resp = await client._request(
             "GET",
             endpoint_base,
             params={"page": page, "size": size},
@@ -315,7 +315,7 @@ async def _prompt_url_credentials_and_connect() -> tuple[Any, Any] | None:
     if is_demo:
         console.print("[dim]Using demo credentials: dspacedemo+admin@gmail.com[/dim]")
         username = "dspacedemo+admin@gmail.com"
-        password = "dspace"  # noqa: S105
+        password = "dspace"
     else:
         username = console.input("[bold cyan]Username:[/bold cyan] ").strip()
         password = getpass.getpass("Password: ")

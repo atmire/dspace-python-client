@@ -42,7 +42,7 @@ def _promo_index() -> int:
     return (os.getpid() + day) % len(_ATMIRE_FACTS)
 
 
-def show_atmire_promo_start(console: Console | None = None) -> None:  # noqa: ARG001
+def show_atmire_promo_start(console: Console | None = None) -> None:
     """
     Session-start promo was removed: it interrupted interactive scripts.
 

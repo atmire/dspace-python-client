@@ -45,7 +45,7 @@ def mock_auth_client():
 @pytest.fixture
 def mock_dspace_client(mock_auth_client):
     """Mock DSpace client."""
-    client = DSpaceClient(
+    return DSpaceClient(
         base_url="https://demo.dspace.org",
         jwt_token="mock-jwt-token",
         csrf_token="mock-csrf-token",
@@ -53,7 +53,6 @@ def mock_dspace_client(mock_auth_client):
         target_versions="bleeding-edge",
         courtesy_delay=0.0,  # No delay for testing
     )
-    return client
 
 
 @pytest.fixture

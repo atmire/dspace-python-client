@@ -6,7 +6,6 @@ has a PDF, we trust that until a forced rerun. One CSV per repository.
 
 import csv
 import hashlib
-import os
 import re
 import urllib.parse
 from pathlib import Path
@@ -29,7 +28,9 @@ def _repository_cache_id(base_url: str) -> str:
     netloc = parsed.netloc or parsed.path or normalized
     safe = re.sub(r"[^a-z0-9.-]", "_", netloc)
     if parsed.path and parsed.path != "/":
-        path_hash = hashlib.md5(parsed.path.encode()).hexdigest()[:8]
+        # Not a security primitive: this only disambiguates cache filenames per
+        # repository path, so an explicitly non-security digest is correct here.
+        path_hash = hashlib.md5(parsed.path.encode(), usedforsecurity=False).hexdigest()[:8]
         safe = f"{safe}_{path_hash}"
     return safe or "default"
 
@@ -64,7 +65,7 @@ class RestPDFCountCache:
         self._data = {}
         if self._cache_path.exists():
             try:
-                with open(self._cache_path, newline="", encoding="utf-8") as f:
+                with self._cache_path.open(newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         uid = (row.get("item_uuid") or "").strip()
@@ -91,12 +92,12 @@ class RestPDFCountCache:
         """Write cache to CSV atomically."""
         self._ensure_dir()
         tmp_path = self._cache_path.with_suffix(".csv.tmp")
-        with open(tmp_path, "w", newline="", encoding="utf-8") as f:
+        with tmp_path.open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=["item_uuid", "has_pdf"])
             writer.writeheader()
             for uid, has_pdf in self._data.items():
                 writer.writerow({"item_uuid": uid, "has_pdf": "1" if has_pdf else "0"})
-        os.replace(tmp_path, self._cache_path)
+        tmp_path.replace(self._cache_path)
 
     def totals(self) -> tuple[int, int]:
         """Return (total_count, with_pdf_count) from current in-memory cache."""

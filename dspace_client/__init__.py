@@ -47,6 +47,15 @@ from .auth import DSpaceAuthClient
 from .batch import BatchItemCreator
 from .concurrency import ConcurrencyConfig, ConcurrencyController
 from .core import DSpaceClient
+from .credentials import prompt_and_authenticate
+from .exceptions import (
+    AuthenticationError,
+    DSpaceAPIError,
+    DSpaceClientError,
+    OAIError,
+    ServerVersionMismatchError,
+    VersionIncompatibilityError,
+)
 from .oai import OAIClient
 from .promo import (
     is_atmire_promo_disabled,
@@ -225,16 +234,6 @@ async def create_anonymous_client(
     await client.verify_server_version(raise_on_mismatch=True)
     return http, client
 
-
-from .credentials import prompt_and_authenticate
-from .exceptions import (
-    AuthenticationError,
-    DSpaceAPIError,
-    DSpaceClientError,
-    OAIError,
-    ServerVersionMismatchError,
-    VersionIncompatibilityError,
-)
 
 __version__ = "0.1.0"
 __author__ = "Bram Luyten"

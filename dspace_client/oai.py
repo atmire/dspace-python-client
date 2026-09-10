@@ -6,7 +6,6 @@ The OAI endpoint is at {base_url}/server/oai/request. No authentication is requi
 import csv
 import hashlib
 import json
-import os
 import re
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -243,8 +242,7 @@ class OAIClient:
         client = await self._get_client()
         response = await client.get(url)
         response.raise_for_status()
-        root = safe_fromstring(response.text)
-        return root
+        return safe_fromstring(response.text)
 
     async def identify(self) -> IdentifyResult:
         """Request Identify verb; returns repository info."""
@@ -406,7 +404,9 @@ def _repository_cache_id(base_url: str) -> str:
     netloc = parsed.netloc or parsed.path or normalized
     safe = re.sub(r"[^a-z0-9.-]", "_", netloc)
     if parsed.path and parsed.path != "/":
-        path_hash = hashlib.md5(parsed.path.encode()).hexdigest()[:8]
+        # Not a security primitive: this only disambiguates cache filenames per
+        # repository path, so an explicitly non-security digest is correct here.
+        path_hash = hashlib.md5(parsed.path.encode(), usedforsecurity=False).hexdigest()[:8]
         safe = f"{safe}_{path_hash}"
     return safe or "default"
 
@@ -447,7 +447,7 @@ class OAIPDFCountCache:
         self._last_until = None
         if self._cache_path.exists():
             try:
-                with open(self._cache_path, newline="", encoding="utf-8") as f:
+                with self._cache_path.open(newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         ident = row.get("identifier", "").strip()
@@ -462,7 +462,7 @@ class OAIPDFCountCache:
                 pass
         if self._last_until_path.exists():
             try:
-                with open(self._last_until_path, encoding="utf-8") as f:
+                with self._last_until_path.open(encoding="utf-8") as f:
                     obj = json.load(f)
                 self._last_until = obj.get("last_until")
             except (json.JSONDecodeError, OSError):
@@ -482,7 +482,7 @@ class OAIPDFCountCache:
         if last_until is not None:
             self._last_until = last_until
         tmp_csv = self._cache_path.with_suffix(".csv.tmp")
-        with open(tmp_csv, "w", newline="", encoding="utf-8") as f:
+        with tmp_csv.open("w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=["identifier", "datestamp", "has_pdf"])
             writer.writeheader()
             for ident, entry in self._data.items():
@@ -493,12 +493,12 @@ class OAIPDFCountCache:
                         "has_pdf": "1" if entry["has_pdf"] else "0",
                     }
                 )
-        os.replace(tmp_csv, self._cache_path)
+        tmp_csv.replace(self._cache_path)
         if self._last_until is not None:
             tmp_json = self._last_until_path.with_suffix(".json.tmp")
-            with open(tmp_json, "w", encoding="utf-8") as f:
+            with tmp_json.open("w", encoding="utf-8") as f:
                 json.dump({"last_until": self._last_until}, f, indent=0)
-            os.replace(tmp_json, self._last_until_path)
+            tmp_json.replace(self._last_until_path)
 
     def totals(self) -> tuple[int, int]:
         """Return (total_count, with_pdf_count) from current in-memory cache."""

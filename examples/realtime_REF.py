@@ -690,7 +690,7 @@ async def main() -> None:
                             "notes": notes,
                         }
                     )
-                except Exception as e:  # noqa: BLE001 — per-item resilience
+                except Exception as e:
                     console.print(f"[red]Error[/red] processing item {uuid}: {e}")
                 scanned += 1
                 progress.update(task_id, advance=1)

@@ -11,12 +11,12 @@ _LAA = Path(__file__).resolve().parents[1] / "examples" / "link_author_authoriti
 if str(_LAA) not in sys.path:
     sys.path.insert(0, str(_LAA))
 
-from orcid import (  # noqa: E402
+from orcid import (
     extract_orcid_from_entry,
     normalize_orcid_identifier,
     orcid_hyphenated_from_compact,
 )
-from scoring import author_search_variants, fuzzy_match_author  # noqa: E402
+from scoring import author_search_variants, fuzzy_match_author
 
 
 @pytest.mark.parametrize(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dspace_client import DSpaceClient
 from dspace_client.exceptions import DSpaceAPIError
@@ -137,7 +137,7 @@ def build_provenance_statement(
     the full text was found, whether the file was manually inspected, the original
     retrieval URL, and the file checksum (algorithm as reported by DSpace, default MD5).
     """
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [
         "Full text retrieved by the DSpace Full Text Finder and added to the ORIGINAL bundle.",
         f"Timestamp: {timestamp}",

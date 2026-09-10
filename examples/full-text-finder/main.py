@@ -16,6 +16,7 @@ Run from repo root::
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import getpass
 import re
 from pathlib import Path
@@ -254,10 +255,8 @@ async def process_item(
         return "failed"
     finally:
         if temp_path is not None and temp_path.exists():
-            try:
+            with contextlib.suppress(OSError):
                 temp_path.unlink()
-            except OSError:
-                pass
 
 
 def _resolve_no_user_verify_interactive(*, dry_run: bool, no_user_verify_flag: bool) -> bool:
@@ -523,10 +522,8 @@ async def run_async(
     finally:
         if log_f:
             log_line(log_f, "END session")
-            try:
+            with contextlib.suppress(Exception):
                 log_f.close()
-            except Exception:
-                pass
         await _close_auth_session(auth)
 
 

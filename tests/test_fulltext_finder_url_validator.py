@@ -13,9 +13,9 @@ _FFT = Path(__file__).resolve().parents[1] / "examples" / "full-text-finder"
 if str(_FFT) not in sys.path:
     sys.path.insert(0, str(_FFT))
 
-from dspace_candidates import extract_doi_from_metadata  # noqa: E402
-from sources import try_unpaywall  # noqa: E402
-from url_validator import verify_full_text_url  # noqa: E402
+from dspace_candidates import extract_doi_from_metadata
+from sources import try_unpaywall
+from url_validator import verify_full_text_url
 
 _MD = {"language": None, "authority": None, "confidence": -1}
 
