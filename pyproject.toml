@@ -39,6 +39,7 @@ dev = [
     # let a new ruff release turn the build red without anyone changing code.
     "ruff>=0.15.8,<0.16",
     "mypy>=1.10.0",
+    "types-defusedxml>=0.7",
 ]
 examples = [
     "pyyaml>=6.0.1",

@@ -242,7 +242,8 @@ class OAIClient:
         client = await self._get_client()
         response = await client.get(url)
         response.raise_for_status()
-        return safe_fromstring(response.text)
+        result: ET.Element = safe_fromstring(response.text)
+        return result
 
     async def identify(self) -> IdentifyResult:
         """Request Identify verb; returns repository info."""

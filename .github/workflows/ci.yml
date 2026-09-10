@@ -59,3 +59,8 @@ jobs:
       # Gating: the backlog is cleared, so any finding is new.
       - name: Lint
         run: ruff check . --output-format=github
+
+      # Gating, library only: the strict settings in pyproject.toml are calibrated for
+      # the shipped package, not for the example scripts.
+      - name: Type check
+        run: mypy dspace_client

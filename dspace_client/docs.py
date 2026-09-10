@@ -112,7 +112,7 @@ class RestContractFetcher:
         if result.returncode != 0:
             raise NetworkError(f"Git command failed ({' '.join(args)}): {stderr.decode()}")
 
-    async def _clone_repository(self, repo_path: Path, branch: str):
+    async def _clone_repository(self, repo_path: Path, branch: str) -> None:
         """Clone the RestContract repository."""
         with Progress(
             SpinnerColumn(),
@@ -134,7 +134,7 @@ class RestContractFetcher:
             )
             progress.update(task, description=f"✓ Cloned {branch} branch")
 
-    async def _update_repository(self, repo_path: Path, branch: str):
+    async def _update_repository(self, repo_path: Path, branch: str) -> None:
         """Update existing repository with latest changes."""
         with Progress(
             SpinnerColumn(),
@@ -204,7 +204,7 @@ class RestContractFetcher:
         age = datetime.now(UTC) - last_update
         return age > timedelta(hours=max_age_hours)
 
-    def _update_last_update_time(self, version: str):
+    def _update_last_update_time(self, version: str) -> None:
         """Update the last update timestamp for a version."""
         timestamp_file = self.cache_dir / f"{version}.last_update"
         timestamp_file.write_text(datetime.now(UTC).isoformat())
@@ -290,7 +290,7 @@ class RestContractFetcher:
             return {"status": "error", "error": str(e)}
 
 
-def cli_main():
+def cli_main() -> None:
     """CLI entry point for dspace-docs command."""
     import typer
     from rich.table import Table
@@ -302,7 +302,7 @@ def cli_main():
     )
 
     @app.command("list")
-    def list_versions():
+    def list_versions() -> None:
         """List available documentation versions."""
         fetcher = RestContractFetcher()
 
@@ -330,7 +330,7 @@ def cli_main():
         version: str = typer.Argument(
             ..., help="Version to fetch (e.g., 7.6, 8.0, 9.0, bleeding-edge)"
         ),
-    ):
+    ) -> None:
         """Fetch documentation for a specific version."""
         fetcher = RestContractFetcher()
 
@@ -344,7 +344,7 @@ def cli_main():
             raise typer.Exit(1)
 
     @app.command("update")
-    def update_all():
+    def update_all() -> None:
         """Update all cached documentation versions."""
         fetcher = RestContractFetcher()
 
@@ -362,7 +362,7 @@ def cli_main():
             raise typer.Exit(1)
 
     @app.command("status")
-    def show_status():
+    def show_status() -> None:
         """Show status of all documentation versions."""
         fetcher = RestContractFetcher()
 

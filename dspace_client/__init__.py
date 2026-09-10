@@ -39,6 +39,7 @@ Example:
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import httpx
 
@@ -75,7 +76,7 @@ async def create_validated_client(
     *,
     show_atmire_promo: bool = False,
     fetch_docs: bool = False,
-    **client_kwargs,
+    **client_kwargs: Any,
 ) -> tuple[DSpaceAuthClient, DSpaceClient]:
     """
     Authenticate and create DSpaceClient with automatic version validation.
@@ -155,7 +156,7 @@ async def managed_client(
     username: str,
     password: str,
     target_versions: str | list[str] = "bleeding-edge",
-    **client_kwargs,
+    **client_kwargs: Any,
 ) -> AsyncIterator[tuple[DSpaceAuthClient, DSpaceClient]]:
     """Authenticate, validate, and guarantee ``auth.close()`` in a ``finally`` block."""
     auth: DSpaceAuthClient | None = None
@@ -176,7 +177,7 @@ async def managed_client(
 async def create_anonymous_client(
     base_url: str,
     target_versions: str | list[str] = "bleeding-edge",
-    **client_kwargs,
+    **client_kwargs: Any,
 ) -> tuple[httpx.AsyncClient, DSpaceClient]:
     """Build a DSpaceClient for anonymous, read-only access.
 

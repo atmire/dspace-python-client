@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from .exceptions import VersionIncompatibilityError
 from .versions import SUPPORTED_VERSIONS as _SUPPORTED_VERSIONS
@@ -110,7 +110,7 @@ class VersionCompatibility:
         # only available from DSpace 8 onwards would be listed as ["8.0+"].
     }
 
-    def __init__(self, target_versions: str | list[str], docs_fetcher=None):
+    def __init__(self, target_versions: str | list[str], docs_fetcher: Any = None):
         """
         Initialize validator with target versions.
 

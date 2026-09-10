@@ -7,6 +7,8 @@ import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import TracebackType
+from typing import Self
 
 
 @dataclass
@@ -127,11 +129,16 @@ class AdaptiveSemaphore:
         """Adjust the semaphore limit. Async alias of :meth:`set_limit`; never blocks."""
         return self.set_limit(new_limit)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         await self.acquire()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.release()
 
 
@@ -147,7 +154,7 @@ class PerformanceMonitor:
         self.failed_operations = 0
         self._lock = asyncio.Lock()
 
-    async def record_operation(self, duration: float, success: bool = True):
+    async def record_operation(self, duration: float, success: bool = True) -> None:
         """Record an operation's timing and success status."""
         async with self._lock:
             current_time = time.time()
@@ -274,15 +281,15 @@ class ConcurrencyController:
         # the library importing any console/IO machinery.
         self.on_adjust: Callable[[int, int, str], None] | None = None
 
-    async def acquire(self):
+    async def acquire(self) -> None:
         """Acquire concurrency slot."""
         await self.semaphore.acquire()
 
-    def release(self):
+    def release(self) -> None:
         """Release concurrency slot."""
         self.semaphore.release()
 
-    async def record_operation(self, duration: float, success: bool = True):
+    async def record_operation(self, duration: float, success: bool = True) -> None:
         """Record an operation and potentially adjust concurrency."""
         await self.monitor.record_operation(duration, success)
 
@@ -304,7 +311,7 @@ class ConcurrencyController:
                 await self._adjust_concurrency()
                 self.operations_since_adjustment = 0
 
-    async def _adjust_concurrency(self):
+    async def _adjust_concurrency(self) -> None:
         """Adjust concurrency based on current performance."""
         current_limit = self.semaphore.current_limit
         metrics = await self.monitor.get_metrics(current_limit)

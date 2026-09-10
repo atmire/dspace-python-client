@@ -56,7 +56,15 @@ class DSpaceAuthClient:
         )
         self.show_atmire_promo: bool = False
 
-    async def _ensure_client(self):
+    @property
+    def _http(self) -> httpx.AsyncClient:
+        """The live HTTP client. Call :meth:`_ensure_client` before using it."""
+        if self.client is None:
+            msg = "HTTP client not started; call _ensure_client() first."
+            raise AuthenticationError(msg)
+        return self.client
+
+    async def _ensure_client(self) -> None:
         """
         Ensure we have a persistent HTTP client.
 
@@ -144,7 +152,7 @@ class DSpaceAuthClient:
             _body_preview(response.text),
         )
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         had_client = self.client is not None
         if self.client:
@@ -188,12 +196,12 @@ class DSpaceAuthClient:
             await self._ensure_client()
 
             # Try HEAD first; some servers/proxies only return dspace-xsrf-token on GET
-            response = await self.client.head(csrf_url)
+            response = await self._http.head(csrf_url)
             csrf_token = response.headers.get("dspace-xsrf-token")
             if not csrf_token:
                 csrf_token = self._csrf_token_from_cookie_jar()
             if not csrf_token:
-                response = await self.client.get(csrf_url)
+                response = await self._http.get(csrf_url)
                 csrf_token = response.headers.get("dspace-xsrf-token")
             if not csrf_token:
                 csrf_token = self._csrf_token_from_cookie_jar()
@@ -226,7 +234,7 @@ class DSpaceAuthClient:
 
         await self._ensure_client()
         try:
-            response = await self.client.post(
+            response = await self._http.post(
                 f"{self.base_url}/server/api/authn/login",
                 headers={
                     "Authorization": f"Bearer {self.jwt_token}",
@@ -260,7 +268,8 @@ class DSpaceAuthClient:
         jwt_token = auth_header.replace("Bearer ", "")
         self.jwt_token = jwt_token
         self._last_auth_time = time.time()
-        return jwt_token
+        result: str = jwt_token
+        return result
 
     async def login(self, username: str, password: str) -> str:
         """
@@ -287,16 +296,19 @@ class DSpaceAuthClient:
         try:
             await self._ensure_client()
 
-            response = await self.client.post(
+            # Omit X-XSRF-TOKEN rather than sending None: httpx rejects a None header
+            # value with a TypeError that gives no hint that CSRF retrieval failed.
+            login_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            if self.csrf_token:
+                login_headers["X-XSRF-TOKEN"] = self.csrf_token
+
+            response = await self._http.post(
                 f"{self.base_url}/server/api/authn/login",
                 data={
                     "user": username,
                     "password": password,
                 },
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                },
+                headers=login_headers,
             )
 
             if response.status_code == 200:
@@ -332,7 +344,8 @@ class DSpaceAuthClient:
 
             self.jwt_token = jwt_token
             self._last_auth_time = time.time()
-            return jwt_token
+            result: str = jwt_token
+            return result
 
         except httpx.RequestError as e:
             raise AuthenticationError(f"Login request failed: {e}")
@@ -353,7 +366,7 @@ class DSpaceAuthClient:
         try:
             await self._ensure_client()
 
-            response = await self.client.get(
+            response = await self._http.get(
                 f"{self.base_url}/server/api/authn/status",
                 headers={
                     "Authorization": f"Bearer {self.jwt_token}",
@@ -379,7 +392,8 @@ class DSpaceAuthClient:
                 console.print(f"  {status}")
                 raise AuthenticationError("Authentication verification failed: not authenticated")
 
-            return status
+            result: dict = status
+            return result
 
         except httpx.RequestError as e:
             raise AuthenticationError(f"Authentication verification request failed: {e}")
@@ -456,7 +470,7 @@ class DSpaceAuthClient:
         try:
             await self._ensure_client()
 
-            response = await self.client.get(
+            response = await self._http.get(
                 f"{self.base_url}/server/api/authn/status",
                 headers={
                     "Authorization": f"Bearer {self.jwt_token}",
@@ -467,7 +481,8 @@ class DSpaceAuthClient:
                 return False
 
             status = response.json()
-            return status.get("authenticated", False)
+            result: bool = status.get("authenticated", False)
+            return result
 
         except (httpx.RequestError, ValueError, KeyError):
             return False

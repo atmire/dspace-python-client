@@ -22,6 +22,7 @@ from .docs import RestContractFetcher
 from .exceptions import (
     AuthenticationError,
     DSpaceAPIError,
+    DSpaceClientError,
     ServerVersionMismatchError,
 )
 from .rest_pdf_cache import RestPDFCountCache
@@ -153,6 +154,39 @@ class DSpaceClient:
             headers["X-XSRF-TOKEN"] = self.csrf_token
         return headers
 
+    @property
+    def _http(self) -> httpx.AsyncClient:
+        """The underlying HTTP client, or a clear error if none was supplied.
+
+        ``http_client`` is optional in the constructor but every request path needs
+        it, so without this the first call fails with a bare AttributeError on None.
+        """
+        if self.client is None:
+            msg = (
+                "This DSpaceClient has no HTTP client. Pass http_client=..., or build "
+                "the client with create_validated_client() / create_anonymous_client(), "
+                "which supply the authenticated session."
+            )
+            raise DSpaceClientError(msg)
+        return self.client
+
+    def _direct_headers(self, content_type: str | None = None) -> dict[str, str]:
+        """Headers for requests dispatched straight through ``self.client``.
+
+        Mirrors :meth:`_get_headers`, but lets the caller pick the Content-Type - or
+        omit it, so httpx can set the multipart boundary itself. X-XSRF-TOKEN is left
+        out when no CSRF token is held: httpx rejects a None header value with a
+        TypeError that says nothing about the real cause.
+        """
+        headers: dict[str, str] = {}
+        if self.jwt_token:
+            headers["Authorization"] = f"Bearer {self.jwt_token}"
+        if self.csrf_token:
+            headers["X-XSRF-TOKEN"] = self.csrf_token
+        if content_type:
+            headers["Content-Type"] = content_type
+        return headers
+
     def _require_auth(self, operation: str) -> None:
         """Raise AuthenticationError if the client is in anonymous mode.
 
@@ -222,7 +256,7 @@ class DSpaceClient:
         async def _dispatch() -> httpx.Response:
             request_start = time.perf_counter()
             try:
-                response = await self.client.request(
+                response = await self._http.request(
                     method,
                     url,
                     headers=headers,
@@ -324,7 +358,8 @@ class DSpaceClient:
         response = await self._request(
             "POST", endpoint, json_data=payload, method_name="create_community"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def delete_community(self, uuid: str) -> None:
         """Delete a community by UUID."""
@@ -369,7 +404,8 @@ class DSpaceClient:
             json_data=payload,
             method_name="create_collection",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def delete_collection(self, uuid: str) -> None:
         """Delete a collection by UUID."""
@@ -418,7 +454,8 @@ class DSpaceClient:
             json_data=payload,
             method_name="create_item",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def delete_item(self, uuid: str) -> None:
         """Delete an item by UUID."""
@@ -448,7 +485,8 @@ class DSpaceClient:
             json_data=payload,
             method_name="create_bundle",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     # ========== Bitstreams ==========
 
@@ -490,18 +528,17 @@ class DSpaceClient:
         properties = {"name": filename, "metadata": metadata}
 
         try:
-            files = {
+            # Annotated because mypy otherwise widens the two differently-shaped tuples
+            # into a supertype httpx does not accept.
+            files: dict[str, tuple[str | None, bytes | str, str]] = {
                 "file": (filename, content, "application/octet-stream"),
                 "properties": (None, orjson.dumps(properties).decode(), "application/json"),
             }
 
             # Use the persistent authenticated client with CSRF token
-            response = await self.client.post(
+            response = await self._http.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self.jwt_token}",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                },
+                headers=self._direct_headers(),
                 files=files,
             )
 
@@ -516,7 +553,8 @@ class DSpaceClient:
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            result: dict = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise DSpaceAPIError(f"Bitstream upload request failed: {e}")
@@ -541,7 +579,8 @@ class DSpaceClient:
         response = await self._request(
             "GET", f"core/items/{item_uuid}/bundles", method_name="get_item_bundles"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_bundle_bitstreams(self, bundle_uuid: str, embed_format: bool = True) -> dict:
         """
@@ -566,7 +605,8 @@ class DSpaceClient:
             params=params,
             method_name="get_bundle_bitstreams",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_bitstream_format(self, bitstream_uuid: str) -> dict:
         """
@@ -583,7 +623,8 @@ class DSpaceClient:
         response = await self._request(
             "GET", f"core/bitstreams/{bitstream_uuid}/format", method_name="get_bitstream_format"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_bitstream_formats(self, page: int = 0, size: int = 100) -> dict:
         """
@@ -605,7 +646,8 @@ class DSpaceClient:
             params={"page": page, "size": size},
             method_name="get_bitstream_formats",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     # ========== Statistics ==========
 
@@ -639,7 +681,8 @@ class DSpaceClient:
         response = await self._request(
             "POST", "statistics/viewevents", json_data=payload, method_name="create_item_view"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     # ========== EPeople ==========
 
@@ -680,7 +723,8 @@ class DSpaceClient:
         response = await self._request(
             "POST", "eperson/epersons", json_data=payload, method_name="create_eperson"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def delete_eperson(self, uuid: str) -> None:
         """Delete an EPerson by UUID."""
@@ -704,13 +748,9 @@ class DSpaceClient:
         url = f"{self.base_url}/server/api/eperson/groups/{group_uuid}/epersons"
 
         try:
-            response = await self.client.post(
+            response = await self._http.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self.jwt_token}",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                    "Content-Type": "text/uri-list",
-                },
+                headers=self._direct_headers("text/uri-list"),
                 content=f"{self.base_url}/server/api/eperson/epersons/{eperson_uuid}",
             )
 
@@ -750,7 +790,8 @@ class DSpaceClient:
         response = await self._request(
             "POST", "eperson/groups", json_data=payload, method_name="create_group"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def delete_group(self, uuid: str) -> None:
         """Delete a group by UUID."""
@@ -782,7 +823,8 @@ class DSpaceClient:
         # Look for exact name match
         for group in groups:
             if group.get("name") == name:
-                return group
+                result: dict | None = group
+                return result
 
         return None
 
@@ -826,13 +868,9 @@ class DSpaceClient:
         url = f"{self.base_url}/server/api/eperson/groups/{parent_group_uuid}/subgroups"
 
         try:
-            response = await self.client.post(
+            response = await self._http.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self.jwt_token}",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                    "Content-Type": "text/uri-list",
-                },
+                headers=self._direct_headers("text/uri-list"),
                 content=f"{self.base_url}/server/api/eperson/groups/{subgroup_uuid}",
             )
 
@@ -868,7 +906,7 @@ class DSpaceClient:
             Created group object
         """
         self._require_auth("create_collection_item_read_group")
-        payload = {"metadata": {}}
+        payload: dict[str, Any] = {"metadata": {}}
 
         if description:
             payload["metadata"]["dc.description"] = [
@@ -878,13 +916,9 @@ class DSpaceClient:
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/itemReadGroup"
 
         try:
-            response = await self.client.post(
+            response = await self._http.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self.jwt_token}",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                    "Content-Type": "application/json",
-                },
+                headers=self._direct_headers("application/json"),
                 json=payload,
             )
 
@@ -894,7 +928,8 @@ class DSpaceClient:
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            result: dict = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise DSpaceAPIError(f"Create collection item read group request failed: {e}")
@@ -920,7 +955,7 @@ class DSpaceClient:
             Created group object
         """
         self._require_auth("create_collection_bitstream_read_group")
-        payload = {"metadata": {}}
+        payload: dict[str, Any] = {"metadata": {}}
 
         if description:
             payload["metadata"]["dc.description"] = [
@@ -930,13 +965,9 @@ class DSpaceClient:
         url = f"{self.base_url}/server/api/core/collections/{collection_uuid}/bitstreamReadGroup"
 
         try:
-            response = await self.client.post(
+            response = await self._http.post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self.jwt_token}",
-                    "X-XSRF-TOKEN": self.csrf_token,
-                    "Content-Type": "application/json",
-                },
+                headers=self._direct_headers("application/json"),
                 json=payload,
             )
 
@@ -946,7 +977,8 @@ class DSpaceClient:
                     status_code=response.status_code,
                 )
 
-            return response.json()
+            result: dict = response.json()
+            return result
 
         except httpx.RequestError as e:
             raise DSpaceAPIError(f"Create collection bitstream read group request failed: {e}")
@@ -1004,12 +1036,14 @@ class DSpaceClient:
         response = await self._request(
             "GET", "discover/search/objects", params=params, method_name="search_items"
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_item(self, uuid: str) -> dict:
         """Get full item details by UUID."""
         response = await self._request("GET", f"core/items/{uuid}", method_name="get_item")
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def resolve_pdf_format_id(self, override_format_id: int | None = None) -> int | None:
         """
@@ -1036,7 +1070,8 @@ class DSpaceClient:
             desc = (fmt.get("shortDescription") or "").upper()
             mime = (fmt.get("mimetype") or "").lower()
             if "PDF" in desc or mime == "application/pdf":
-                return fmt.get("id")
+                result: int | None = fmt.get("id")
+                return result
         return None
 
     async def count_items_with_bitstream_format(
@@ -1293,7 +1328,8 @@ class DSpaceClient:
             json_data=operations,  # type: ignore[arg-type]
             method_name="patch_item",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_vocabulary_entries(
         self,
@@ -1334,7 +1370,8 @@ class DSpaceClient:
             params=params,
             method_name="get_vocabulary_entries",
         )
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def get_vocabulary_entry_detail(self, vocabulary_name: str, entry_id: str) -> dict | None:
         """
@@ -1353,7 +1390,8 @@ class DSpaceClient:
                 f"submission/vocabularyEntryDetails/{vocabulary_name}:{entry_id}",
                 method_name="get_vocabulary_entry_detail",
             )
-            return response.json()
+            result: dict | None = response.json()
+            return result
         except DSpaceAPIError as e:
             if e.status_code == 404:
                 return None
@@ -1362,7 +1400,8 @@ class DSpaceClient:
     async def get_eperson(self, uuid: str) -> dict:
         """Get EPerson details by UUID."""
         response = await self._request("GET", f"eperson/epersons/{uuid}", method_name="get_eperson")
-        return response.json()
+        result: dict = response.json()
+        return result
 
     async def verify_server_version(self, raise_on_mismatch: bool = True) -> str | None:
         """
@@ -1512,7 +1551,7 @@ class DSpaceClient:
         """Probe a URL for a DSpace version string. Returns (version, last_error)."""
         try:
             console.print(f"[dim]  → Probing [white]{label}[/white][/dim]")
-            response = await self.client.get(url, headers=headers)
+            response = await self._http.get(url, headers=headers)
             if response.status_code == 200:
                 normalized = parser(response)
                 if normalized:
@@ -1555,7 +1594,7 @@ class DSpaceClient:
             return version
 
         try:
-            response = await self.client.get(config_url, headers=headers)
+            response = await self._http.get(config_url, headers=headers)
             if response.status_code == 401:
                 console.print(
                     "[dim]  → Same endpoint without auth (401 from server; retry unauthenticated)…[/dim]"
@@ -1615,7 +1654,7 @@ class DSpaceClient:
             url = f"{self.base_url}/server/api/core/items/{item_uuid}/submitter"
             headers = self._get_headers(include_csrf=False)
 
-            response = await self.client.get(url, headers=headers)
+            response = await self._http.get(url, headers=headers)
 
             if response.status_code == 404:
                 # Endpoint doesn't exist (DSpace 7)
@@ -1624,7 +1663,8 @@ class DSpaceClient:
                 # No content - no read access or not authenticated
                 return None
             if response.status_code == 200:
-                return response.json()
+                result: dict | None = response.json()
+                return result
             # Other error - log and return None
             console.print(f"[dim]Warning: submitter endpoint returned {response.status_code}[/dim]")
             return None

@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from rich.console import Console
-from rich.progress import Progress
+from rich.progress import Progress, TaskID
 
 from .concurrency import ConcurrencyConfig, ConcurrencyController, PerformanceMetrics
 from .core import DSpaceClient
@@ -44,7 +44,7 @@ class BatchItemCreator:
         collection_uuids: list[str],
         item_data: list[dict[str, Any]],
         progress: Progress | None = None,
-        task_id: int | None = None,
+        task_id: TaskID | None = None,
         on_metrics_sample: Callable[[int, int, PerformanceMetrics], None | Awaitable[None]]
         | None = None,
     ) -> tuple[list[dict], list[dict], list[dict]]:
@@ -146,7 +146,7 @@ class BatchItemCreator:
     ) -> list[dict]:
         """Execute a batch of item specs with concurrency control."""
 
-        async def execute_with_semaphore(spec: tuple[dict[str, Any], str]):
+        async def execute_with_semaphore(spec: tuple[dict[str, Any], str]) -> dict:
             item_info, collection_uuid = spec
             duration = 0.0
             # Time only the work itself: the wait for a concurrency slot is queueing time,
@@ -173,7 +173,8 @@ class BatchItemCreator:
             return outcome
 
         # Execute all tasks concurrently
-        return await asyncio.gather(*[execute_with_semaphore(spec) for spec in specs])
+        result: list[dict] = await asyncio.gather(*[execute_with_semaphore(spec) for spec in specs])
+        return result
 
     async def _create_single_item_with_bitstream(
         self,
