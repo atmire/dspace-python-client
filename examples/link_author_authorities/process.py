@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TextIO
 
 from orcid import extract_orcid_from_entry, fetch_entry_detail
 from rich.panel import Panel
@@ -22,7 +23,7 @@ from dspace_client.throttle import ThrottleController
 CONFIDENCE_LINKED = 600
 
 
-def _log(log_file: object | None, line: str) -> None:
+def _log(log_file: TextIO | None, line: str) -> None:
     """Write a line to the log file and flush."""
     if log_file is not None:
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -202,7 +203,7 @@ async def process_item(
     vocabulary_name: str,
     auto_link_single: bool,
     use_fuzzy: bool,
-    log_file: object | None,
+    log_file: TextIO | None,
     target_authority: tuple[str, str] | None = None,
     filter_author_name: str | None = None,
 ) -> tuple[int, int, int]:
