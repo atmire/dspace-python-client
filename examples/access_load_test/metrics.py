@@ -142,9 +142,14 @@ class RequestRecord:
     action_id: str | None = None
     edge_block: bool = False
     truncated: bool = False
+    aborted: bool = False
 
     @property
     def ok(self) -> bool:
+        # A browser-cancelled request (navigation superseded it, or the tab closed) is not
+        # a failure: it never got a chance to succeed or fail on the server's account.
+        if self.aborted:
+            return True
         return self.error is None and self.status is not None and self.status < 400
 
     @property
@@ -153,16 +158,28 @@ class RequestRecord:
 
     @property
     def is_server_error(self) -> bool:
-        """A server fault: 5xx, 429, or a transport error (timeout/connection reset).
+        """A server fault: 5xx or a transport error (timeout/connection reset).
 
-        Deliberately excludes 4xx like 401/403/404/400: the DSpace Angular app makes
-        anonymous requests that legitimately return 401, and crawlers hit 404 on stale
-        links. Those are fast, correct responses, not signs the server is failing. The
-        breaking-point detector keys on this, not on the raw >= 400 count.
+        Deliberately excludes: browser-cancelled requests; 4xx like 401/403/404/400 (the
+        Angular app makes anonymous requests that legitimately return 401, and crawlers hit
+        404 on stale links); and 429, which is the server *deliberately* shedding load (see
+        ``is_rate_limited``). Those are all fast, correct responses, not signs the server is
+        failing. The breaking-point detector keys on this, not on the raw >= 400 count.
         """
+        if self.aborted:
+            return False
         if self.error is not None:
             return True
-        return self.status is not None and (self.status >= 500 or self.status == 429)
+        return self.status is not None and self.status >= 500
+
+    @property
+    def is_rate_limited(self) -> bool:
+        """429 Too Many Requests: the server (or its SSR layer / edge) is shedding load.
+
+        A capacity signal worth reporting on its own, but NOT a fault: DSpace's Angular SSR
+        commonly rate-limits bot traffic to /search and /items by design.
+        """
+        return not self.aborted and self.status == 429
 
 
 @dataclass(slots=True)
@@ -197,6 +214,7 @@ class ClassStats:
     count: int = 0
     errors: int = 0
     server_errors: int = 0
+    rate_limited: int = 0
     timeouts: int = 0
     edge_blocks: int = 0
     bytes_received: int = 0
@@ -217,6 +235,10 @@ class ClassStats:
     def server_error_rate(self) -> float:
         return self.server_errors / self.count if self.count else 0.0
 
+    @property
+    def rate_limited_rate(self) -> float:
+        return self.rate_limited / self.count if self.count else 0.0
+
 
 def summarise(records: list[RequestRecord], window_s: float) -> ClassStats:
     if not records:
@@ -228,6 +250,7 @@ def summarise(records: list[RequestRecord], window_s: float) -> ClassStats:
         count=len(records),
         errors=sum(1 for r in records if not r.ok),
         server_errors=sum(1 for r in records if r.is_server_error),
+        rate_limited=sum(1 for r in records if r.is_rate_limited),
         timeouts=sum(1 for r in records if r.is_timeout),
         edge_blocks=sum(1 for r in records if r.edge_block),
         bytes_received=total_bytes,
@@ -299,6 +322,7 @@ class MetricsCollector:
         self.total_requests = 0
         self.total_errors = 0
         self.total_server_errors = 0
+        self.total_rate_limited = 0
         self.total_bytes = 0
         self.total_actions = 0
         self.blocked_third_party = 0
@@ -341,10 +365,17 @@ class MetricsCollector:
         self.total_bytes += rec.bytes_received
         self.class_counts[rec.req_class] += 1
         self.persona_counts[rec.persona] += 1
-        key = str(rec.status) if rec.status is not None else (rec.error or "error")
+        if rec.aborted:
+            key = "aborted(browser)"
+        elif rec.status is not None:
+            key = str(rec.status)
+        else:
+            key = rec.error or "error"
         self.status_counts[key] += 1
         if rec.is_server_error:
             self.total_server_errors += 1
+        if rec.is_rate_limited:
+            self.total_rate_limited += 1
         if not rec.ok:
             self.total_errors += 1
             msg = rec.error or f"HTTP {rec.status}"
@@ -571,6 +602,7 @@ class Verdict:
     onset: Signal | None = None
     breaking: Signal | None = None
     collapse: Signal | None = None
+    rate_limited: Signal | None = None
     onset_by_class: dict[str, Signal] = field(default_factory=dict)
     generator_unreliable: bool = False
     generator_reasons: list[str] = field(default_factory=list)
@@ -590,6 +622,7 @@ class Verdict:
             "onset": self.onset.to_dict() if self.onset else None,
             "breaking": self.breaking.to_dict() if self.breaking else None,
             "collapse": self.collapse.to_dict() if self.collapse else None,
+            "rate_limited": self.rate_limited.to_dict() if self.rate_limited else None,
             "onset_by_class": {k: v.to_dict() for k, v in self.onset_by_class.items()},
             "generator_unreliable": self.generator_unreliable,
             "generator_reasons": list(self.generator_reasons),
@@ -621,6 +654,8 @@ class TrendDetector:
         break_p95_s: float = 10.0,
         break_confirm_windows: int = 2,
         min_requests_per_window: int = 5,
+        min_requests_for_error_rate: int = 20,
+        rate_limit_confirm_windows: int = 2,
         loop_lag_unreliable_ms: float = 250.0,
     ) -> None:
         self.factor = factor
@@ -630,12 +665,15 @@ class TrendDetector:
         self.break_p95_s = break_p95_s
         self.break_confirm_windows = max(1, break_confirm_windows)
         self.min_requests = min_requests_per_window
+        self.min_requests_for_error_rate = min_requests_for_error_rate
+        self.rate_limit_confirm_windows = max(1, rate_limit_confirm_windows)
         self.loop_lag_unreliable_ms = loop_lag_unreliable_ms
         self.baseline: Baseline | None = None
         self.verdict = Verdict()
         self._p50_history: dict[str, list[float]] = defaultdict(list)
         self._above: dict[str, int] = defaultdict(int)
         self._break_streak = 0
+        self._rate_limit_streak = 0
         self._collapse_streak = 0
         self._t0: float | None = None
         self._loaded_windows: list[WindowStats] = []
@@ -721,7 +759,11 @@ class TrendDetector:
         # --- breaking ---
         err_rate = w.total.server_error_rate
         breaking_now = (
-            (w.total.count >= 10 and err_rate >= self.break_error_rate)
+            (
+                w.total.count >= self.min_requests_for_error_rate
+                and w.total.server_errors >= 5
+                and err_rate >= self.break_error_rate
+            )
             or w.total.p95 >= self.break_p95_s
             or w.total.timeouts > 0
             or w.action_timeouts > 0
@@ -729,8 +771,8 @@ class TrendDetector:
         self._break_streak = self._break_streak + 1 if breaking_now else 0
         if self._break_streak >= self.break_confirm_windows and self.verdict.breaking is None:
             reasons = []
-            if w.total.count >= 10 and err_rate >= self.break_error_rate:
-                reasons.append(f"server-error rate {err_rate:.1%} (5xx/429/timeouts)")
+            if w.total.count >= self.min_requests_for_error_rate and w.total.server_errors >= 5:
+                reasons.append(f"server-fault rate {err_rate:.1%} (5xx/timeouts)")
             if w.total.p95 >= self.break_p95_s:
                 reasons.append(f"p95 {w.total.p95:.2f}s")
             if w.total.timeouts or w.action_timeouts:
@@ -747,6 +789,35 @@ class TrendDetector:
                 reason=", ".join(reasons) + f" for {self.break_confirm_windows} windows",
             )
             self.verdict.breaking = sig
+            new.append(sig)
+
+        # --- rate limiting (429): a capacity signal, reported but never 'breaking' ---
+        rl_now = (
+            w.total.count >= self.min_requests_for_error_rate
+            and w.total.rate_limited >= 5
+            and w.total.rate_limited_rate >= self.break_error_rate
+        )
+        self._rate_limit_streak = self._rate_limit_streak + 1 if rl_now else 0
+        if (
+            self._rate_limit_streak >= self.rate_limit_confirm_windows
+            and self.verdict.rate_limited is None
+        ):
+            sig = Signal(
+                kind="rate_limited",
+                window_index=w.index,
+                at_s=at_s,
+                req_class="all",
+                active_users=w.active_users,
+                rps=w.rps,
+                baseline_value=None,
+                observed_value=w.total.rate_limited_rate,
+                reason=(
+                    f"server returned 429 for {w.total.rate_limited_rate:.1%} of requests "
+                    f"for {self.rate_limit_confirm_windows} windows (SSR/edge shedding load; "
+                    "not a fault)"
+                ),
+            )
+            self.verdict.rate_limited = sig
             new.append(sig)
 
         # --- collapse of achieved vs offered action rate ---

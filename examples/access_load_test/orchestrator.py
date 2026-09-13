@@ -532,6 +532,7 @@ def _result(
         "requests": collector.total_requests,
         "errors": collector.total_errors,
         "server_errors": collector.total_server_errors,
+        "rate_limited_429": collector.total_rate_limited,
         "bytes_received": collector.total_bytes,
         "actions": collector.total_actions,
         "load_phase_requests": load_reqs,

@@ -53,13 +53,16 @@ def _class_table_for(windows: list[WindowStats]) -> dict[str, dict]:
         p95 = sum(r.p95 * r.count for r, _ in rows) / n
         errors = sum(r.errors for r, _ in rows)
         server_errors = sum(r.server_errors for r, _ in rows)
+        rate_limited = sum(r.rate_limited for r, _ in rows)
         first, last = rows[0][0], rows[-1][0]
         out[c] = {
             "requests": n,
             "errors": errors,
             "server_errors": server_errors,
+            "rate_limited": rate_limited,
             "error_rate": round(errors / n, 4),
             "server_error_rate": round(server_errors / n, 4),
+            "rate_limited_rate": round(rate_limited / n, 4),
             "p50_s": round(p50, 4),
             "p95_s": round(p95, 4),
             "p99_max_s": round(max(r.p99 for r, _ in rows), 4),
@@ -140,13 +143,14 @@ def _fmt_s(v: float | None) -> str:
 
 def _class_rows(table: dict[str, dict]) -> list[str]:
     lines = [
-        "| Class | Requests | 4xx | Server err | p50 (s) | p95 (s) | Baseline p50 | Load/baseline | Last/first window | MB |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Class | Requests | 4xx | 429 | Server err | p50 (s) | p95 (s) | Baseline p50 | Load/baseline | Last/first window | MB |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for c, r in table.items():
-        four_xx = r["errors"] - r.get("server_errors", 0)
+        four_xx = r["errors"] - r.get("server_errors", 0) - r.get("rate_limited", 0)
         lines.append(
-            f"| {c} | {r['requests']} | {four_xx} | {r.get('server_errors', 0)} | {r['p50_s']:.3f} | {r['p95_s']:.3f} | "
+            f"| {c} | {r['requests']} | {four_xx} | {r.get('rate_limited', 0)} | {r.get('server_errors', 0)} | "
+            f"{r['p50_s']:.3f} | {r['p95_s']:.3f} | "
             f"{_fmt_s(r.get('baseline_p50_s'))} | {r.get('load_vs_baseline_p50_ratio') or '-'} | "
             f"{r.get('last_vs_first_p50_ratio') or '-'} | {r['bytes'] / 1048576:.1f} |"
         )
@@ -184,8 +188,9 @@ def render_summary(payload: dict) -> str:
         "",
         f"## Verdict: {status_word}",
         "",
-        "_Breaking point keys on server-fault responses (5xx, 429, timeouts), not on benign "
-        "4xx such as the Angular app's anonymous 401 probes or a crawler's 404 on a stale link._",
+        "_Breaking point keys on server faults (5xx, timeouts) only. 429 rate-limiting is "
+        "reported separately as a capacity signal, and benign 4xx (the app's anonymous 401 "
+        "probes, a crawler's 404 on a stale link) are excluded._",
         "",
         _signal_line("Degradation onset", v["onset"]),
         _signal_line("Breaking point", v["breaking"]),
@@ -217,7 +222,8 @@ def render_summary(payload: dict) -> str:
         "|---|---:|",
         f"| Requests (all phases) | {t['requests']} |",
         f"| Responses >= 400 (incl. benign 401/404 from the app and stale links) | {t['errors']} |",
-        f"| Server-fault errors (5xx / 429 / timeouts) - the verdict keys on these | {t['server_errors']} |",
+        f"| Server-fault errors (5xx / timeouts) - the breaking verdict keys on these | {t['server_errors']} |",
+        f"| Rate-limited (429) - server shedding load; reported, not a fault | {t.get('rate_limited_429', 0)} |",
         f"| Load-phase requests | {t['load_phase_requests']} |",
         f"| Load-phase average req/s | {t['load_phase_avg_rps']} |",
         f"| User actions | {t['actions']} |",

@@ -332,8 +332,59 @@ class TestMetrics:
         assert not _rec(status=400).is_server_error
         assert _rec(status=500).is_server_error
         assert _rec(status=503).is_server_error
-        assert _rec(status=429).is_server_error
+        # 429 is rate-limiting, a capacity signal, NOT a server fault:
+        assert not _rec(status=429).is_server_error
+        assert _rec(status=429).is_rate_limited
         assert _rec(status=None, error="timeout: ReadTimeout").is_server_error
+
+    def test_browser_abort_is_not_an_error(self):
+        rec = RequestRecord(
+            ts_end=0.0,
+            user_id="u",
+            persona="human",
+            phase="load",
+            method="GET",
+            url="https://x/assets/a.js",
+            req_class="static",
+            status=None,
+            duration_s=0.1,
+            ttfb_s=None,
+            bytes_received=0,
+            error="net::ERR_ABORTED",
+            source="browser",
+            aborted=True,
+        )
+        assert rec.ok  # a cancelled request is not a failure
+        assert not rec.is_server_error
+
+    def test_aborted_excluded_from_error_counts(self):
+        mc = MetricsCollector(window_s=1.0)
+        mc.set_phase("load")
+        t0 = mc.t0
+        for i in range(30):
+            mc.record(
+                RequestRecord(
+                    ts_end=t0 + 0.1 + i * 0.01,
+                    user_id="u",
+                    persona="human",
+                    phase="load",
+                    method="GET",
+                    url="https://x/assets/a.js",
+                    req_class="static",
+                    status=None,
+                    duration_s=0.05,
+                    ttfb_s=None,
+                    bytes_received=0,
+                    error="net::ERR_ABORTED",
+                    source="browser",
+                    aborted=True,
+                )
+            )
+        mc.record(_rec(status=200, ts=t0 + 0.5))
+        w = mc.roll(now=t0 + 2.0)[0]
+        assert w.total.errors == 0
+        assert w.total.server_errors == 0
+        assert mc.status_counts.get("aborted(browser)") == 30
 
     def test_window_separates_4xx_from_server_errors(self):
         mc = MetricsCollector(window_s=1.0)
@@ -345,6 +396,47 @@ class TestMetrics:
         w = mc.roll(now=t0 + 2.0)[0]
         assert w.total.errors == 6  # all >= 400
         assert w.total.server_errors == 1  # only the 503
+
+    def test_rate_limiting_is_not_breaking(self):
+        mc = MetricsCollector(window_s=1.0)
+        det = TrendDetector(
+            break_error_rate=0.05,
+            break_confirm_windows=1,
+            break_p95_s=100,
+            min_requests_for_error_rate=20,
+            rate_limit_confirm_windows=2,
+        )
+        det.set_baseline(None)
+        for wi in range(3):
+            for i in range(40):
+                st = 429 if i < 15 else 200  # ~37% rate-limited
+                mc.record(_rec(status=st, dur=0.02, phase="load", ts=mc.t0 + wi + 0.02 + i * 0.01))
+        mc.set_phase("load")
+        for w in mc.roll(now=mc.t0 + 5.0):
+            det.observe(w)
+        assert det.verdict.breaking is None
+        assert det.verdict.status == "healthy"
+        assert det.verdict.rate_limited is not None  # reported as a capacity signal
+
+    def test_breaking_needs_a_real_sample(self):
+        # A quiet window with only a few 5xx must not trip breaking.
+        mc = MetricsCollector(window_s=1.0)
+        det = TrendDetector(
+            break_error_rate=0.05,
+            break_confirm_windows=1,
+            break_p95_s=100,
+            min_requests_for_error_rate=20,
+        )
+        det.set_baseline(None)
+        for wi in range(3):
+            # 15 requests, 4 are 5xx (27%) — below the 20-request sample floor
+            for i in range(15):
+                st = 503 if i < 4 else 200
+                mc.record(_rec(status=st, dur=0.02, phase="load", ts=mc.t0 + wi + 0.02 + i * 0.01))
+        mc.set_phase("load")
+        for w in mc.roll(now=mc.t0 + 5.0):
+            det.observe(w)
+        assert det.verdict.breaking is None
 
     def test_breaking_ignores_benign_4xx_flood(self):
         mc = MetricsCollector(window_s=1.0)

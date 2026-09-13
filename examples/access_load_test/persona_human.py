@@ -276,9 +276,18 @@ class HumanUser:
             duration = end_ms / 1000.0 if end_ms >= 0 else max(0.0, now - start_s)
         ttfb = resp_start_ms / 1000.0 if resp_start_ms >= 0 else None
         error = None
+        aborted = False
         if failed:
             failure = request.failure or "request failed"
-            error = "timeout: " + failure if "TIMED_OUT" in failure else failure
+            # net::ERR_ABORTED / ERR_CANCELED come from the browser cancelling an in-flight
+            # request when a navigation supersedes it or the page/context closes. That is not
+            # a server fault, so record it as a (non-error) cancellation, not a failure.
+            if "ABORTED" in failure.upper() or "CANCEL" in failure.upper():
+                aborted = True
+            elif "TIMED_OUT" in failure:
+                error = "timeout: " + failure
+            else:
+                error = failure
         rec = RequestRecord(
             ts_end=start_s + duration if start_ms > 0 else now,
             user_id=self.user_id,
@@ -295,6 +304,7 @@ class HumanUser:
             source="browser",
             action_id=self._action.id if self._action else None,
             edge_block=looks_like_edge_block(status, {k.lower(): v for k, v in headers.items()}),
+            aborted=aborted,
         )
         self.ctx.collector.record(rec)
         if self._action is not None:
