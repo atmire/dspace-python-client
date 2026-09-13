@@ -67,6 +67,8 @@ class RunResult:
     persona_counts: dict[str, int]
     slowest: list[dict]
     top_errors: list[dict]
+    browser_errors: list[dict]
+    browser_error_samples: list[dict]
     generator: dict
     persona_notes: dict[str, int]
     stop_reason: str
@@ -541,6 +543,7 @@ def _result(
         "robots_skipped_urls": collector.robots_skipped,
         "download_bytes": ctx.budget.used,
         "downloads_refused_budget": ctx.budget.refused,
+        "browser_js_errors": collector.total_browser_errors,
     }
     return RunResult(
         cfg=cfg,
@@ -559,6 +562,8 @@ def _result(
         persona_counts=dict(collector.persona_counts),
         slowest=collector.slowest(),
         top_errors=collector.top_errors(),
+        browser_errors=collector.top_browser_errors(),
+        browser_error_samples=collector.browser_error_samples(),
         generator=gen,
         persona_notes=dict(ctx.persona_notes),
         stop_reason=stop_reason,

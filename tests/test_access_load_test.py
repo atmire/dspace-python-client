@@ -28,12 +28,14 @@ from access_load_test.config import (
 )
 from access_load_test.html_links import extract_links
 from access_load_test.metrics import (
+    BrowserErrorRecord,
     LoopLagMonitor,
     MetricsCollector,
     RequestRecord,
     TrendDetector,
     build_baseline,
     classify_url,
+    error_template,
     percentile,
 )
 from access_load_test.pacing import session_length, start_offsets, think_time
@@ -723,3 +725,59 @@ class TestTrafficBudget:
         assert b.remaining() == 40
         b.note(60)
         assert b.exhausted
+
+
+class TestBrowserErrors:
+    def _be(self, kind="pageerror", text="TypeError: x is undefined"):
+        return BrowserErrorRecord(
+            ts=1000.0,
+            user_id="human-001",
+            persona="human",
+            phase="load",
+            kind=kind,
+            text=text,
+            url="https://x/items/abc",
+            action_id="a1",
+        )
+
+    def test_error_template_collapses_ids_and_numbers(self):
+        a = error_template(
+            "Cannot read property of 11111111-1111-1111-1111-111111111111 at line 42"
+        )
+        b = error_template(
+            "Cannot read property of 22222222-2222-2222-2222-222222222222 at line 99"
+        )
+        assert a == b
+        assert "{uuid}" in a and "{n}" in a
+
+    def test_collector_aggregates_browser_errors(self):
+        mc = MetricsCollector(window_s=1.0)
+        for _ in range(3):
+            mc.record_browser_error(self._be(text="TypeError: a at 1"))
+        mc.record_browser_error(self._be(kind="console.error", text="app blew up"))
+        assert mc.total_browser_errors == 4
+        top = mc.top_browser_errors()
+        # the 3 TypeErrors collapse to one template with count 3
+        counts = {(r["kind"], r["count"]) for r in top}
+        assert ("pageerror", 3) in counts
+        assert ("console.error", 1) in counts
+
+    def test_sample_reservoir_is_bounded(self):
+        mc = MetricsCollector(window_s=1.0)
+        mc._browser_error_sample_cap = 5
+        for i in range(20):
+            mc.record_browser_error(self._be(text=f"err {i}"))
+        assert len(mc.browser_error_samples()) == 5
+        assert mc.total_browser_errors == 20
+
+    def test_should_record_console_filters(self):
+        from access_load_test.persona_human import should_record_console
+
+        assert should_record_console("error", "Uncaught TypeError: boom")
+        assert not should_record_console("warning", "something")
+        assert not should_record_console("log", "info")
+        # network failures are already captured as request records:
+        assert not should_record_console(
+            "error", "Failed to load resource: the server responded with 500"
+        )
+        assert not should_record_console("error", "   ")

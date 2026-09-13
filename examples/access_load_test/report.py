@@ -118,6 +118,11 @@ def build_payload(result: RunResult) -> dict:
         "windows": [w.to_dict() for w in result.windows],
         "slowest_requests": result.slowest,
         "top_errors": result.top_errors,
+        "browser_errors": {
+            "total": result.totals.get("browser_js_errors", 0),
+            "by_template": result.browser_errors,
+            "samples": result.browser_error_samples,
+        },
         "target_pool": result.pool_summary,
         "queries": result.queries,
         "generator": result.generator,
@@ -130,6 +135,7 @@ def build_payload(result: RunResult) -> dict:
             "windows[] is the time series; windows[].offered_action_rate vs achieved_action_rate shows closed-loop self-regulation (users slowing down because the server did).",
             "generator.unreliable true means the load generator itself saturated; do not draw conclusions about the server from that run.",
             "status_counts with many 403/429 plus edge_blocks in windows means a CDN/WAF, not DSpace, answered.",
+            "browser_errors are client-side events from the human headless browsers (JS exceptions, console errors, crashes) that carry no HTTP status and are invisible to server-side telemetry; a non-zero total points at front-end breakage even when every request returned 200.",
         ],
     }
 
@@ -231,6 +237,7 @@ def render_summary(payload: dict) -> str:
         f"| Bitstream download bytes (discarded, never stored) | {t['download_bytes'] / 1048576:.1f} MB |",
         f"| Third-party requests blocked in browsers | {t['blocked_third_party_requests']} |",
         f"| URLs skipped by good bots (robots.txt) | {t['robots_skipped_urls']} |",
+        f"| Browser JS errors (client-side; humans only) | {t.get('browser_js_errors', 0)} |",
         "",
         "## Per request class (load phase)",
         "",
@@ -361,6 +368,34 @@ def render_extended(payload: dict) -> str:
         f"| {r['count']} | {r['class']} | {r['error'][:80]} | `{r['url_template']}` |"
         for r in payload["top_errors"]
     ] or ["| 0 | - | - | - |"]
+    be = payload.get("browser_errors") or {}
+    lines += [
+        "",
+        "## Browser errors (client-side, human browsers only)",
+        "",
+        "These are JavaScript exceptions, console errors and page crashes captured directly "
+        "from the headless browsers. They carry no HTTP status and do not appear in server-side "
+        "telemetry (SSR, Tomcat, Solr), so a non-zero count here is front-end breakage the "
+        "server logs cannot show you.",
+        "",
+        f"- **Total:** {be.get('total', 0)}",
+        "",
+    ]
+    if be.get("by_template"):
+        lines += ["| Count | Kind | Error |", "|---:|---|---|"]
+        lines += [
+            f"| {r['count']} | {r['kind']} | `{r['error_template'][:110]}` |"
+            for r in be["by_template"]
+        ]
+        samples = be.get("samples") or []
+        if samples:
+            lines += ["", "Sample occurrences (first seen):", ""]
+            lines += [
+                f"- `{x['kind']}` on `{(x.get('url') or '')[:80]}`: {x['text'][:140]}"
+                for x in samples[:10]
+            ]
+    else:
+        lines.append("_None captured._")
     tp = payload["target_pool"]
     lines += [
         "",
