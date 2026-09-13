@@ -120,6 +120,7 @@ def _build_diagnostics_payload(
     num_item_views: int,
     mega_bitstreams: int,
     strict_versions: bool,
+    public_read: bool,
     metrics: dict[str, int | str],
 ) -> dict:
     hostname = _sanitize_hostname(base_url)
@@ -144,6 +145,7 @@ def _build_diagnostics_payload(
             "num_item_views": num_item_views,
             "mega_bitstreams_requested": mega_bitstreams,
             "mega_bitstreams_cap": min(mega_bitstreams, 200),
+            "public_read": public_read,
         },
         "slow_request_threshold_seconds": SLOW_REQUEST_THRESHOLD_SECONDS,
         "slow_requests": slow_list,
@@ -296,6 +298,7 @@ async def run_megaspace(
     mega_bitstreams: int,
     strict_versions: bool,
     courtesy_delay: float,
+    public_read: bool = True,
 ) -> bool:
     if not seed_pack_path.exists():
         console.print(f"[red]Seed pack not found: {seed_pack_path}[/red]")
@@ -412,6 +415,29 @@ async def run_megaspace(
                 f"  [green]✓[/green] Using existing MegaSpace Readers: {created_readers_group_uuid}\n"
             )
 
+        # Decide who can READ the items/bitstreams. Public (Anonymous) is the default so the
+        # content is usable by anonymous clients (browsers, crawlers, read-only scripts).
+        anonymous_group_uuid: str | None = None
+        if public_read:
+            anonymous_group = await client.search_group_by_name("Anonymous")
+            if anonymous_group is None:
+                console.print(
+                    "[yellow]Could not find the built-in 'Anonymous' group; falling back to "
+                    "restricted READ via the MegaSpace Readers group.[/yellow]\n"
+                )
+                public_read = False
+            else:
+                anonymous_group_uuid = anonymous_group["uuid"]
+                console.print(
+                    "  [green]✓[/green] Items and bitstreams will be [bold]publicly readable[/bold] "
+                    "(Anonymous READ)\n"
+                )
+        if not public_read:
+            console.print(
+                f"  [green]✓[/green] Items and bitstreams will be readable only by "
+                f"[bold]{READERS_GROUP_NAME}[/bold]\n"
+            )
+
         console.print(f"[yellow]Creating {num_epeople} EPeople…[/yellow]")
         t_ep = time.perf_counter()
         with Progress(
@@ -510,12 +536,13 @@ async def run_megaspace(
                 )
                 metrics["groups"] = int(metrics["groups"]) + 2
 
-                await client.add_subgroup_to_group(
-                    item_read_group["uuid"], created_readers_group_uuid
+                read_subgroup_uuid = (
+                    anonymous_group_uuid if public_read else created_readers_group_uuid
                 )
+                await client.add_subgroup_to_group(item_read_group["uuid"], read_subgroup_uuid)
                 await client.add_subgroup_to_group(
                     bitstream_read_group["uuid"],
-                    created_readers_group_uuid,
+                    read_subgroup_uuid,
                 )
                 progress.update(ctask, advance=1)
                 cdone = i + 1
@@ -731,6 +758,7 @@ async def run_megaspace(
             num_item_views=num_item_views,
             mega_bitstreams=mega_bitstreams,
             strict_versions=strict_versions,
+            public_read=public_read,
             metrics=metrics,
         )
         _print_summary(
@@ -739,6 +767,7 @@ async def run_megaspace(
             readers_uuid=created_readers_group_uuid,
             mega_meta=mega_metadata_item_uuid,
             mega_bits=mega_bitstreams_item_uuid,
+            public_read=public_read,
             metrics=metrics,
         )
         _print_run_diagnostics(
@@ -835,6 +864,7 @@ def _print_summary(
     readers_uuid: str,
     mega_meta: str | None,
     mega_bits: str | None,
+    public_read: bool,
     metrics: dict[str, int | str],
 ) -> None:
     bu = base_url.rstrip("/")
@@ -849,6 +879,8 @@ def _print_summary(
   {bu}/communities/{community_uuid}
 
 [yellow]Readers group[/yellow] {readers_uuid}{special}
+
+[yellow]Item/bitstream READ[/yellow] {"Anonymous (public)" if public_read else READERS_GROUP_NAME + " only (restricted)"}
 
 [yellow]Counts[/yellow]
   EPeople: {metrics["epeople"]}
@@ -948,6 +980,29 @@ async def main_async(args: argparse.Namespace) -> None:
         courtesy_delay = float(raw) if raw else 1.0
     console.print(f"[dim]→ Courtesy delay: {courtesy_delay}s between REST requests[/dim]")
 
+    # Public (Anonymous) READ is the default: the created items and bitstreams are then
+    # usable by anonymous clients (browsers, crawlers, read-only scripts). Answering "no"
+    # (or passing --restricted-read) instead grants READ only to the site-wide
+    # "MegaSpace Readers" group, so anonymous callers cannot see the content.
+    if args.restricted_read:
+        public_read = False
+    elif args.public_read:
+        public_read = True
+    else:
+        answer = (
+            console.input(
+                "[bold cyan]Make the test items publicly readable (Anonymous READ)?[/bold cyan] "
+                f"[dim](yes/no, default yes). 'no' restricts READ to the '{READERS_GROUP_NAME}' "
+                "group, so anonymous clients cannot see the items:[/dim] "
+            )
+            .strip()
+            .lower()
+        )
+        public_read = answer not in ("n", "no")
+    console.print(
+        f"[dim]→ Item/bitstream READ: {'Anonymous (public)' if public_read else READERS_GROUP_NAME + ' only (restricted)'}[/dim]"
+    )
+
     ok = await run_megaspace(
         seed_pack_path=Path(args.seedpack).resolve(),
         seed=args.seed,
@@ -961,6 +1016,7 @@ async def main_async(args: argparse.Namespace) -> None:
         mega_bitstreams=args.mega_bitstreams,
         strict_versions=not args.skip_version_check,
         courtesy_delay=courtesy_delay,
+        public_read=public_read,
     )
     if not ok:
         raise SystemExit(1)
@@ -1016,6 +1072,20 @@ def main() -> None:
         default=None,
         metavar="SEC",
         help="Seconds between REST requests (omit to prompt; default when prompted is 1.0).",
+    )
+    read_access = p.add_mutually_exclusive_group()
+    read_access.add_argument(
+        "--public-read",
+        action="store_true",
+        help="Grant Anonymous READ on items/bitstreams (public; the default). Skips the prompt.",
+    )
+    read_access.add_argument(
+        "--restricted-read",
+        action="store_true",
+        help=(
+            "Restrict item/bitstream READ to the 'MegaSpace Readers' group instead of "
+            "Anonymous, so anonymous clients cannot see the content. Skips the prompt."
+        ),
     )
     asyncio.run(main_async(p.parse_args()))
 

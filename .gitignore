@@ -46,3 +46,10 @@ full_text_finder_*.log
 # MegaSpace diagnostics exports (timestamp + hostname in name)
 *-megaspace-*-raw.json
 *-megaspace-*-readable.md
+
+# access_load_test example (timestamped reports + per-request logs)
+access-load-reports/
+*-access-load-*-summary.md
+*-access-load-*-extended.md
+*-access-load-*-raw.json
+*-access-load-*-requests.jsonl
