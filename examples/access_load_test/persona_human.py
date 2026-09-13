@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 from access_load_test.config import RUN_ID_HEADER, RunConfig
 from access_load_test.context import ActionScope, RunContext
 from access_load_test.http_user import HttpUser, looks_like_edge_block
-from access_load_test.metrics import RequestRecord, classify_url
+from access_load_test.metrics import BrowserErrorRecord, RequestRecord, classify_url
 from access_load_test.pacing import session_length
 
 NETWORK_QUIET_S = 0.5
@@ -56,6 +56,21 @@ NEXT_WEIGHTS = (
     ("home", 5),
 )
 BROWSER_ARGS = ["--disable-gpu", "--disable-dev-shm-usage", "--no-first-run", "--mute-audio"]
+
+
+def should_record_console(msg_type: str, text: str) -> bool:
+    """Whether a browser console message is worth recording as a client-side error.
+
+    Only ``error``-level messages, and not the browser's console echo of a failed
+    network request (those are already captured as request records, so recording the
+    console line too would double-count).
+    """
+    if msg_type != "error":
+        return False
+    low = text.strip().lower()
+    if low.startswith("failed to load resource"):
+        return False
+    return bool(low)
 
 
 def playwright_available() -> bool:
@@ -174,6 +189,11 @@ class HumanUser:
         page.on("request", self._on_request)
         page.on("requestfinished", self._on_finished)
         page.on("requestfailed", self._on_failed)
+        # Client-side browser errors (no HTTP status): JS exceptions, console errors,
+        # page crashes. Invisible to server-side telemetry; captured here for the report.
+        page.on("pageerror", self._on_page_error)
+        page.on("console", self._on_console)
+        page.on("crash", self._on_crash)
         try:
             pages = session_length(
                 self.cfg.session_pages_mean, self.cfg.session_pages_max, self.rng
@@ -248,6 +268,38 @@ class HumanUser:
         t = asyncio.create_task(self._record(request, failed=True))
         self._bg.add(t)
         t.add_done_callback(self._bg.discard)
+
+    def _record_browser_error(self, kind: str, text: str) -> None:
+        self.ctx.collector.record_browser_error(
+            BrowserErrorRecord(
+                ts=time.time(),
+                user_id=self.user_id,
+                persona=self.persona,
+                phase=self.ctx.collector.phase,
+                kind=kind,
+                text=(text or "")[:500],
+                url=self._action.url if self._action else "",
+                action_id=self._action.id if self._action else None,
+            )
+        )
+        self.ctx.bump("human_browser_" + kind.replace(".", "_"))
+
+    def _on_page_error(self, error: Any) -> None:
+        # Playwright passes an Error object; str() gives message + first stack line.
+        text = getattr(error, "message", None) or str(error)
+        self._record_browser_error("pageerror", text)
+
+    def _on_console(self, message: Any) -> None:
+        try:
+            mtype = message.type
+            text = message.text
+        except Exception:
+            return
+        if should_record_console(mtype, text):
+            self._record_browser_error("console.error", text)
+
+    def _on_crash(self, _page: Any) -> None:
+        self._record_browser_error("crash", "page crashed")
 
     async def _record(self, request: Any, *, failed: bool) -> None:
         try:
@@ -515,4 +567,4 @@ class HumanUser:
             self._action = None
 
 
-__all__ = ["BrowserPool", "HumanUser", "playwright_available"]
+__all__ = ["BrowserPool", "HumanUser", "playwright_available", "should_record_console"]

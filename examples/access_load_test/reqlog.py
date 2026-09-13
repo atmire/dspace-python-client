@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TextIO
 
-from access_load_test.metrics import ActionRecord, RequestRecord
+from access_load_test.metrics import ActionRecord, BrowserErrorRecord, RequestRecord
 
 
 class RequestLog:
@@ -50,6 +50,12 @@ class RequestLog:
         d = asdict(rec)
         d["type"] = "action"
         d["ts_end_utc"] = datetime.fromtimestamp(rec.ts_end, tz=UTC).isoformat()
+        self._write(d)
+
+    def write_browser_error(self, rec: BrowserErrorRecord) -> None:
+        d = asdict(rec)
+        d["type"] = "browser_error"
+        d["ts_utc"] = datetime.fromtimestamp(rec.ts, tz=UTC).isoformat()
         self._write(d)
 
     def close(self) -> None:

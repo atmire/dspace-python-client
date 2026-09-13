@@ -179,6 +179,15 @@ a different signal:
 Browser-cancelled requests (a navigation superseding an in-flight request) are recorded as a
 non-error `aborted(browser)` outcome, not a failure.
 
+**Client-side browser errors (human users).** The headless browsers also report events that
+carry no HTTP status and are invisible to every server-side signal (SSR, Tomcat, Solr):
+uncaught JavaScript exceptions, browser `console.error` messages, and page crashes. These are
+captured per human user and summarised in the reports (`browser_errors`), so you can catch
+front-end breakage even when every HTTP request returned 200 — the classic "the app broke in
+the browser" case. They are reported for visibility and do **not** gate the breaking verdict
+(a single stray `console.error` should not stop a run). The browser's console echo of a failed
+network request is deliberately excluded, since that request is already captured on the wire.
+
 Separately, the tool detects **degradation onset per request class**: it runs a short
 single-user **baseline** first to learn each class's unloaded latency, then flags the first
 sustained window where the rolling median latency rises above baseline by a factor
@@ -235,7 +244,7 @@ the hostname. All four are git-ignored.
 | File | For |
 |------|-----|
 | `…-summary.md` | The verdict (healthy / degraded / breaking), degradation onset and breaking point with the exact load at that moment, a per-class table, and next steps. Read this first. |
-| `…-extended.md` | The per-window time series, status-code breakdown, slowest URLs, top errors, robots.txt findings, per-persona stats and generator health. |
+| `…-extended.md` | The per-window time series, status-code breakdown, slowest URLs, top errors, **client-side browser errors** (JS exceptions / console errors / crashes, human users), robots.txt findings, per-persona stats and generator health. |
 | `…-raw.json` | A schema-versioned machine payload with an explicit verdict object and `analysis_hints`, designed to be read by tooling or an AI. |
 | `…-requests.jsonl` | One line per request (bounded by `--requests-log-max-mb`) for deep dives. |
 

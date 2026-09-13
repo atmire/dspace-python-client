@@ -198,6 +198,34 @@ class ActionRecord:
     extra: dict = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class BrowserErrorRecord:
+    """A client-side browser event with no HTTP status: a JS exception, a console
+    error, or a page crash. Captured from Playwright, invisible to server telemetry."""
+
+    ts: float
+    user_id: str
+    persona: str
+    phase: str
+    kind: str  # "pageerror" | "console.error" | "crash"
+    text: str
+    url: str
+    action_id: str | None = None
+
+
+def error_template(text: str, limit: int = 160) -> str:
+    """Collapse UUIDs, numbers and whitespace so similar browser errors group together."""
+    t = re.sub(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "{uuid}",
+        text,
+        flags=re.IGNORECASE,
+    )
+    t = re.sub(r"\b\d[\d.,:]*\b", "{n}", t)
+    t = " ".join(t.split())
+    return t[:limit]
+
+
 # ---- percentiles -----------------------------------------------------------------------
 
 
@@ -323,6 +351,10 @@ class MetricsCollector:
         self.total_errors = 0
         self.total_server_errors = 0
         self.total_rate_limited = 0
+        self.total_browser_errors = 0
+        self.browser_error_counts: Counter[tuple[str, str]] = Counter()
+        self._browser_error_samples: list[BrowserErrorRecord] = []
+        self._browser_error_sample_cap = 100
         self.total_bytes = 0
         self.total_actions = 0
         self.blocked_third_party = 0
@@ -397,6 +429,24 @@ class MetricsCollector:
         self.total_actions += 1
         if self._log_sink is not None:
             self._log_sink.write_action(rec)
+
+    def record_browser_error(self, rec: BrowserErrorRecord) -> None:
+        """Aggregate a client-side browser error (JS exception / console error / crash)."""
+        self.total_browser_errors += 1
+        self.browser_error_counts[(rec.kind, error_template(rec.text))] += 1
+        if len(self._browser_error_samples) < self._browser_error_sample_cap:
+            self._browser_error_samples.append(rec)
+        if self._log_sink is not None and hasattr(self._log_sink, "write_browser_error"):
+            self._log_sink.write_browser_error(rec)
+
+    def top_browser_errors(self, n: int = 25) -> list[dict]:
+        return [
+            {"kind": k, "error_template": t, "count": c}
+            for (k, t), c in self.browser_error_counts.most_common(n)
+        ]
+
+    def browser_error_samples(self) -> list[dict]:
+        return [asdict(r) for r in self._browser_error_samples]
 
     def note_blocked_third_party(self) -> None:
         self.blocked_third_party += 1
@@ -864,6 +914,7 @@ __all__ = [
     "CLASS_ORDER",
     "ActionRecord",
     "Baseline",
+    "BrowserErrorRecord",
     "ClassStats",
     "LoopLagMonitor",
     "MetricsCollector",
@@ -874,6 +925,7 @@ __all__ = [
     "WindowStats",
     "build_baseline",
     "classify_url",
+    "error_template",
     "percentile",
     "summarise",
 ]
