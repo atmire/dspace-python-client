@@ -757,17 +757,17 @@ class TrendDetector:
                         new.append(sig)
 
         # --- breaking ---
+        # Breaking = the server actually failing. Request-level timeouts already count as
+        # server faults (is_server_error), so they flow through the error-rate rule with its
+        # sample guard; a single transient timeout does not hard-break. Action-settle
+        # timeouts (a browser page that never reached its rendered state within the cap) are
+        # a client-side/SSR signal - usually rate-limiting - and deliberately do NOT break.
         err_rate = w.total.server_error_rate
         breaking_now = (
-            (
-                w.total.count >= self.min_requests_for_error_rate
-                and w.total.server_errors >= 5
-                and err_rate >= self.break_error_rate
-            )
-            or w.total.p95 >= self.break_p95_s
-            or w.total.timeouts > 0
-            or w.action_timeouts > 0
-        )
+            w.total.count >= self.min_requests_for_error_rate
+            and w.total.server_errors >= 5
+            and err_rate >= self.break_error_rate
+        ) or w.total.p95 >= self.break_p95_s
         self._break_streak = self._break_streak + 1 if breaking_now else 0
         if self._break_streak >= self.break_confirm_windows and self.verdict.breaking is None:
             reasons = []
@@ -775,8 +775,8 @@ class TrendDetector:
                 reasons.append(f"server-fault rate {err_rate:.1%} (5xx/timeouts)")
             if w.total.p95 >= self.break_p95_s:
                 reasons.append(f"p95 {w.total.p95:.2f}s")
-            if w.total.timeouts or w.action_timeouts:
-                reasons.append(f"{w.total.timeouts + w.action_timeouts} timeouts")
+            if w.total.timeouts:
+                reasons.append(f"{w.total.timeouts} request timeouts")
             sig = Signal(
                 kind="breaking",
                 window_index=w.index,

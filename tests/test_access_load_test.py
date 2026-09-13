@@ -438,6 +438,58 @@ class TestMetrics:
             det.observe(w)
         assert det.verdict.breaking is None
 
+    def test_single_timeout_does_not_break(self):
+        # One transient request timeout in a busy window must not hard-stop the run.
+        mc = MetricsCollector(window_s=1.0)
+        det = TrendDetector(
+            break_error_rate=0.05,
+            break_confirm_windows=1,
+            break_p95_s=100,
+            min_requests_for_error_rate=20,
+        )
+        det.set_baseline(None)
+        for wi in range(3):
+            for i in range(50):
+                if i == 0:
+                    mc.record(
+                        _rec(
+                            status=None,
+                            error="timeout: ReadTimeout",
+                            dur=0.1,
+                            phase="load",
+                            ts=mc.t0 + wi + 0.02 + i * 0.01,
+                        )
+                    )
+                else:
+                    mc.record(
+                        _rec(status=200, dur=0.02, phase="load", ts=mc.t0 + wi + 0.02 + i * 0.01)
+                    )
+        mc.set_phase("load")
+        for w in mc.roll(now=mc.t0 + 5.0):
+            det.observe(w)
+        assert det.verdict.breaking is None  # 1 timeout / 50 req = 2%, under the guard
+
+    def test_timeout_storm_breaks_via_p95(self):
+        # Many hung requests spike p95 and DO break.
+        mc = MetricsCollector(window_s=1.0)
+        det = TrendDetector(break_confirm_windows=1, break_p95_s=10, min_requests_for_error_rate=20)
+        det.set_baseline(None)
+        for wi in range(2):
+            for i in range(30):
+                mc.record(
+                    _rec(
+                        status=None,
+                        error="timeout: ReadTimeout",
+                        dur=60.0,
+                        phase="load",
+                        ts=mc.t0 + wi + 0.02 + i * 0.01,
+                    )
+                )
+        mc.set_phase("load")
+        for w in mc.roll(now=mc.t0 + 4.0):
+            det.observe(w)
+        assert det.verdict.breaking is not None
+
     def test_breaking_ignores_benign_4xx_flood(self):
         mc = MetricsCollector(window_s=1.0)
         det = TrendDetector(break_error_rate=0.05, break_confirm_windows=1, break_p95_s=100)
