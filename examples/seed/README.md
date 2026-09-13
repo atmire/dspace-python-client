@@ -20,6 +20,8 @@ If you have not installed the project yet, follow the root **[README → Running
 
 **Notable behaviour:** Configurable scale via CLI flags; optional **diagnostic export** (JSON + Markdown) and a **slow-request** summary; optional cleanup. See [Pacing and MegaSpace diagnostics](#pacing-and-megaspace-diagnostics).
 
+**Item/bitstream READ access:** MegaSpace asks whether the created items and bitstreams should be **publicly readable (Anonymous READ)**—the **default**—or restricted to the site-wide **`MegaSpace Readers`** group. Public content is what you want for **read/access load tests, crawler tests, and open-access smoke tests** (anonymous clients can see it). Choosing restricted (`--restricted-read`) grants READ only to `MegaSpace Readers`, so anonymous callers see nothing—useful for testing access control and restricted-item behaviour. Skip the prompt with **`--public-read`** or **`--restricted-read`**. Note: on a freshly seeded instance, items only appear in **anonymous discovery search** after the server rebuilds its Solr index (`dspace index-discovery`).
+
 ### Publication Page (`publication_page.py`)
 
 **Goal:** Create the **same graph as MiniSpace** (one of each), but drive **community/collection names and item metadata** from **`publication-page-config.json`** so runs are **repeatable and import-like** (your DC fields, authors, dates, etc.). It also attaches the built-in **Anonymous** group to the collection’s **item READ** and **bitstream READ** defaults so the record and PDF are **readable without logging in**—useful for **publication-page demos** and **open-access smoke tests**.
@@ -98,6 +100,12 @@ python examples/seed/publication_page.py
 python examples/seed/publication_page.py --base-url http://localhost:8080
 
 python examples/seed/megaspace.py --collections 2 --items-per-collection 2 --epeople 5
+
+# Public items (default; skips the READ-access prompt):
+python examples/seed/megaspace.py --collections 2 --items-per-collection 2 --public-read
+
+# Restrict READ to the MegaSpace Readers group (anonymous clients cannot see the items):
+python examples/seed/megaspace.py --collections 2 --items-per-collection 2 --restricted-read
 ```
 
 ## Maintainers: updating `default.yml`
