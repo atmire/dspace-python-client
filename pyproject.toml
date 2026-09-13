@@ -44,6 +44,12 @@ dev = [
 examples = [
     "pyyaml>=6.0.1",
 ]
+# Access load test example (examples/access_load_test). The human persona drives real
+# headless Chromium via Playwright; the good-bot and bad-bot scenarios do not need it.
+# After installing, run `playwright install chromium` once to fetch the browser binary.
+loadtest = [
+    "playwright>=1.44",
+]
 
 [project.urls]
 Homepage = "https://github.com/atmire/dspace-python-client"
@@ -127,6 +133,8 @@ ignore = [
 # S314: the XML the tests parse is hardcoded fixture data, not untrusted input.
 "tests/**" = [
     "INP001", "SLF001", "PLR2004", "S105", "S106", "S107", "ARG001", "ARG002", "S314",
+    # Tests use the standard random module for pacing/desynchronisation checks; not crypto.
+    "S311",
     # pytest style preferences that fight the existing suite's conventions.
     "PT006", "PT018",
     # Some tests put example directories on sys.path before importing from them, so
