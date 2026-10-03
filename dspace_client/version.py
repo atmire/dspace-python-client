@@ -106,6 +106,25 @@ class VersionCompatibility:
         "get_vocabulary_entries": ["7.0+"],
         "get_vocabulary_entry_detail": ["7.0+"],
         "get_eperson": ["7.0+"],
+        "get_bitstream": ["7.0+"],
+        "get_bitstream_item": ["7.0+"],
+        "download_bitstream": ["7.0+"],
+        # Authorization, submission/workflow listings and the metadata registry
+        "get_authn_status": ["7.0+"],
+        "get_site": ["7.0+"],
+        "has_feature": ["7.0+"],
+        "iter_workspace_items": ["7.0+"],
+        "iter_workflow_items": ["7.0+"],
+        "iter_pool_tasks": ["7.0+"],
+        "iter_claimed_tasks": ["7.0+"],
+        "find_metadata_schema": ["7.0+"],
+        "find_metadata_field": ["7.0+"],
+        "create_metadata_field": ["7.0+"],
+        "move_bitstream": ["7.0+"],
+        "get_bitstream_bundle": ["7.0+"],
+        "get_primary_bitstream": ["7.0+"],
+        "set_primary_bitstream": ["7.0+"],
+        "anonymous_can_download": ["7.0+"],
         # Version-specific methods are expressed by raising the floor, e.g. a method
         # only available from DSpace 8 onwards would be listed as ["8.0+"].
     }
