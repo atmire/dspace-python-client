@@ -1,0 +1,14 @@
+# How remediate.py records that an item falls under an exception for pre-existing content.
+#
+# The wording below is a neutral placeholder. Whether an exception applies, and how it should
+# be worded, is for your institution's legal or compliance office to decide. The script only
+# records the decision; it does not make it.
+#
+# The value template can use:
+#   {cutoff}       the cutoff date entered at run time (YYYY-MM-DD)
+#   {basis_field}  dc.date.issued, or dc.date.accessioned when issued is missing or invalid
+#   {basis_value}  the date value found in that field
+#   {today}        the date of the run (YYYY-MM-DD)
+
+field: local.accessibility.exception
+value: "preexisting-document; cutoff {cutoff}; basis: {basis_field} {basis_value}; recorded {today}"

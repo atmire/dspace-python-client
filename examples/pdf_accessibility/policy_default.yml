@@ -1,0 +1,46 @@
+# Default severity policy for the PDF accessibility audit.
+#
+# Copy this file, adjust it, and pass it with --policy my_policy.yml. Changing the policy
+# changes its hash, so the next detection run re-checks files that were checked under the
+# old one.
+#
+# Severities: error | warning | info | ignore
+#   error    counts toward FAIL
+#   warning  counts toward REVIEW
+#   info     reported, does not affect the verdict
+#   ignore   not reported at all
+#
+# Rule ids, their WCAG mapping and Matterhorn checkpoint: run `outloud --list-rules`.
+# OCR-001 (image-only pages, no text layer) is added by this example, not by outloud.
+
+# Which success criteria count toward the verdict.
+#   wcag21-aa  WCAG 2.1 Level A and AA (what ADA Title II requires). Default.
+#   wcag22-aa  WCAG 2.2 Level A and AA.
+#   pdfua1     use outloud's severities as they are: every PDF/UA-1 error fails the file.
+standard: wcag21-aa
+
+# Start from outloud's own severity for each rule.
+inherit: outloud
+
+# Rules that map to no success criterion in the chosen standard (PDF/UA housekeeping such
+# as DOC-012 "no pdfuaid in the metadata") are lowered to this severity at most.
+no_wcag_mapping: info
+
+# Highest severity per rule layer. Semantic rules are heuristic checks that no validator
+# runs (alt text that is a file name, empty table headers, prose marked as decoration).
+# They are occasionally wrong, so by default they can put a file in REVIEW but never FAIL it.
+layers:
+  semantic: warning
+
+# Override every rule of a Matterhorn checkpoint at once, for example:
+#   "07": warning        # viewer preferences (DisplayDocTitle)
+matterhorn: {}
+
+# Override single rules. These win over everything above.
+rules:
+  HDG-002: warning   # "first heading is not H1": common in journal articles and harmless
+  OCR-001: error     # image-only pages: nothing for a screen reader to read
+
+verdict:
+  fail_on: error
+  review_on: warning

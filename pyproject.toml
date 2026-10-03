@@ -50,6 +50,21 @@ examples = [
 loadtest = [
     "playwright>=1.44",
 ]
+# PDF accessibility audit example (examples/pdf_accessibility). outloud is Apache-2.0;
+# it depends on PyMuPDF, which is AGPL-3.0 (compatible with this project's GPL-3.0).
+# Pinned below 0.3: outloud is young and its rule ids and output may still change.
+a11y = [
+    "outloud>=0.2,<0.3",
+    "pyyaml>=6.0.1",
+]
+# OCR remediation track (remediate.py --track ocr): pip-only OCR, no Tesseract or
+# Ghostscript. RapidOCR (Apache-2.0) runs PaddleOCR models on ONNX Runtime (MIT); the models
+# ship inside the wheel. Adds roughly 300 MB, mostly OpenCV. Install together with a11y.
+a11y-ocr = [
+    "rapidocr>=3.9,<4",
+    "onnxruntime>=1.18",
+    "fonttools>=4.40",
+]
 
 [project.urls]
 Homepage = "https://github.com/atmire/dspace-python-client"

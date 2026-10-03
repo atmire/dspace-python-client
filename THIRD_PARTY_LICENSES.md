@@ -28,6 +28,34 @@ this list before a release if needed.
 |---------|---------|-----|
 | PyYAML | MIT | https://pyyaml.org/ |
 
+### `a11y` extra (examples/pdf_accessibility)
+
+| Package | License | URL |
+|---------|---------|-----|
+| outloud | Apache-2.0 | https://github.com/visionably/outloud |
+| PyMuPDF | AGPL-3.0 (or Artifex commercial licence) | https://github.com/pymupdf/PyMuPDF |
+| pikepdf | MPL-2.0 | https://github.com/pikepdf/pikepdf |
+| fonttools | MIT | https://github.com/fonttools/fonttools |
+| click | BSD-3-Clause | https://github.com/pallets/click |
+
+PyMuPDF is AGPL-3.0, which is compatible with this project's GPL-3.0-or-later
+(GPLv3 section 13). It is only installed with the optional `a11y` extra and is
+used by a script an administrator runs locally; anyone who offers that code to
+others over a network should check the AGPL's terms.
+
+### `a11y-ocr` extra (OCR remediation track)
+
+| Package | License | URL |
+|---------|---------|-----|
+| rapidocr | Apache-2.0 | https://github.com/RapidAI/RapidOCR |
+| onnxruntime | MIT | https://github.com/microsoft/onnxruntime |
+| opencv-python | Apache-2.0 | https://github.com/opencv/opencv-python |
+| numpy | BSD-3-Clause | https://numpy.org |
+| shapely | BSD-3-Clause | https://github.com/shapely/shapely |
+| pyclipper | MIT | https://github.com/fonttools/pyclipper |
+
+The OCR models (PaddleOCR PP-OCR, Apache-2.0) ship inside the rapidocr wheel.
+
 ## Development and test dependencies
 
 | Package | License | URL |
