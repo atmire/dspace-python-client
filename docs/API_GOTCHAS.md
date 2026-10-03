@@ -227,6 +227,26 @@ import logging
 logging.getLogger("dspace_client.auth").setLevel(logging.DEBUG)
 ```
 
+### Adding several metadata values in one PATCH
+
+`{"op": "add", "path": "/metadata/<field>", "value": [{...}, {...}]}` on an item that has no
+value in that field yet stores **only the first value** of the list. The response is still
+200, so nothing signals the loss. Append each value with its own operation instead:
+
+```json
+[{"op": "add", "path": "/metadata/dc.subject/-", "value": {"value": "one"}},
+ {"op": "add", "path": "/metadata/dc.subject/-", "value": {"value": "two"}}]
+```
+
+`/-` works whether or not the field already has values. Observed on DSpace 11.0-SNAPSHOT
+(2026-10); not yet checked on 9 and 10.
+
+### Writing metadata on in-progress items
+
+A site administrator can `PATCH /api/core/items/{uuid}` on the item of a workspace item
+(an in-progress submission), not only on archived items. Observed on DSpace 11.0-SNAPSHOT
+(2026-10); not yet checked on 9 and 10.
+
 ## References
 
 - [DSpace 7 RestContract](https://github.com/DSpace/RestContract/tree/dspace-7_x)

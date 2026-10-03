@@ -1,0 +1,95 @@
+# Author-facing advice for the findings that come up most in repository content.
+#
+# outloud's own fix text (its catalogue `fix` field) is used for every rule not listed
+# here. Its wording is precise but sometimes written for PDF engineers ("Set /MarkInfo
+# << /Marked true >>"). The entries below say what an author or repository staff member
+# should do in the tools they actually use.
+#
+#   fix: what to do, in plain words
+#   who: author | repository staff | author or repository staff
+
+OCR-001:
+  fix: >-
+    These pages are pictures of text (a scan without OCR), so a screen reader has nothing to
+    read. Run OCR on the file (Acrobat Pro: Scan & OCR > Recognize text; free: OCRmyPDF), check
+    the recognised text, then tag the document. If the author still has the original
+    word-processor file, exporting that again as a tagged PDF is usually better.
+  who: author or repository staff
+
+DOC-002:
+  fix: >-
+    The PDF has no tags, so screen readers cannot tell headings, paragraphs, lists or tables
+    apart. Export it again from the source with tags switched on (Word: File > Save As > PDF >
+    Options > "Document structure tags for accessibility"; LibreOffice: Export as PDF >
+    "Universal Accessibility (PDF/UA)"; LaTeX: \DocumentMetadata{tagging=on}). Without the
+    source file, add tags in Acrobat Pro (Accessibility > Autotag document) and review them.
+  who: author
+
+DOC-001:
+  fix: >-
+    The file is not marked as tagged, so readers ignore any structure it has. Exporting again
+    from the source with tags switched on fixes this together with the missing structure.
+  who: author
+
+TAG-001:
+  fix: >-
+    Some text or images are not tagged, so screen readers skip them. Re-export from the source
+    with tags on; if that is not possible, use Acrobat Pro's Reading Order or Content panel to
+    tag the content, and mark purely decorative items (rules, page numbers) as artifacts.
+  who: author or repository staff
+
+DOC-010:
+  fix: >-
+    Give the document a meaningful title (not the file name) in its properties before
+    exporting (Word: File > Info > Properties > Title; Acrobat: File > Properties >
+    Description).
+  who: author or repository staff
+
+DOC-011:
+  fix: >-
+    Make the PDF viewer show the document title instead of the file name (Acrobat: File >
+    Properties > Initial View > Show: Document Title). Word sets this automatically when the
+    document has a title.
+  who: repository staff
+
+DOC-013:
+  fix: >-
+    Set the document language so screen readers pronounce the text correctly (Word: Review >
+    Language; Acrobat: File > Properties > Advanced > Language), then export again.
+  who: author or repository staff
+
+FIG-001:
+  fix: >-
+    Add alternative text to each informative image that says what it shows and why it matters
+    (Word: right-click the image > View Alt Text). Mark purely decorative images as
+    decorative. Then export again as a tagged PDF. Acrobat Pro: Accessibility > Set
+    alternate text.
+  who: author
+
+HDG-001:
+  fix: >-
+    Headings skip a level (for example Heading 1 followed by Heading 3). Use the heading
+    styles in order in the source document, then export again.
+  who: author
+
+TBL-001:
+  fix: >-
+    Mark the header row (and header column, if any) of each data table as headers (Word:
+    Table Properties > Row > "Repeat as header row at the top of each page"), then export
+    again.
+  who: author
+
+TXT-002:
+  fix: >-
+    Some characters cannot be turned back into text, so screen readers read nonsense or
+    nothing. This usually comes from unusual fonts or a PDF printer driver. Export again from
+    the source with a standard font and the application's own PDF export rather than "print
+    to PDF".
+  who: author
+
+DOC-020:
+  fix: >-
+    The file's security settings block screen readers from reading the text. Remove the
+    restriction (Acrobat: File > Properties > Security > No Security), or at least allow
+    "content copying for accessibility".
+  who: author or repository staff

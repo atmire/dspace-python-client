@@ -4,7 +4,8 @@ import asyncio
 import logging
 import re
 import time
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -649,6 +650,401 @@ class DSpaceClient:
         result: dict = response.json()
         return result
 
+    async def get_bitstream(self, uuid: str) -> dict:
+        """Get a bitstream by UUID (name, sizeBytes, checkSum, metadata)."""
+        response = await self._request(
+            "GET", f"core/bitstreams/{uuid}", method_name="get_bitstream"
+        )
+        result: dict = response.json()
+        return result
+
+    async def get_bitstream_bundle(self, uuid: str) -> dict:
+        """Get the bundle a bitstream is in (GET core/bitstreams/{uuid}/bundle)."""
+        response = await self._request(
+            "GET", f"core/bitstreams/{uuid}/bundle", method_name="get_bitstream_bundle"
+        )
+        result: dict = response.json()
+        return result
+
+    async def get_bitstream_item(self, uuid: str) -> dict:
+        """
+        Get the item that owns a bitstream.
+
+        Follows bitstream -> bundle -> item (GET core/bitstreams/{uuid}/bundle, then
+        core/bundles/{uuid}/item). Also returns the bundle name under ``"_bundle_name"``
+        so callers can tell an ORIGINAL file from a thumbnail or license.
+        """
+        bundle_resp = await self._request(
+            "GET", f"core/bitstreams/{uuid}/bundle", method_name="get_bitstream_item"
+        )
+        bundle: dict = bundle_resp.json()
+        item_resp = await self._request(
+            "GET", f"core/bundles/{bundle['uuid']}/item", method_name="get_bitstream_item"
+        )
+        item: dict = item_resp.json()
+        item["_bundle_name"] = bundle.get("name")
+        return item
+
+    async def download_bitstream(
+        self,
+        uuid: str,
+        dest: Path | str,
+        max_bytes: int | None = None,
+    ) -> int:
+        """
+        Stream a bitstream's content to a local file.
+
+        GET core/bitstreams/{uuid}/content. The body is streamed to disk, never held in
+        memory. Note that DSpace records a download in its usage statistics for every
+        content request, unless the client's User-Agent is listed as a spider.
+
+        Args:
+            uuid: Bitstream UUID
+            dest: Path of the file to write
+            max_bytes: Abort (and delete the partial file) once more than this many bytes
+                have been received. ``None`` for no limit.
+
+        Returns:
+            Number of bytes written.
+
+        Raises:
+            DSpaceAPIError: Non-2xx response or transport error.
+            DSpaceClientError: The content exceeded ``max_bytes``.
+        """
+        self.validator.validate_before_call(
+            method_name="download_bitstream",
+            endpoint=f"core/bitstreams/{uuid}/content",
+            operation="GET",
+        )
+        url = f"{self.base_url}/server/api/core/bitstreams/{uuid}/content"
+        dest_path = Path(dest)
+        written = 0
+        too_large = False
+        status_code = 0
+        error_body = ""
+        try:
+            async with self._http.stream(
+                "GET", url, headers=self._direct_headers(), follow_redirects=True
+            ) as response:
+                status_code = response.status_code
+                if status_code >= 400:
+                    error_body = (await response.aread()).decode("utf-8", "replace")[:500]
+                else:
+                    with dest_path.open("wb") as fh:
+                        async for chunk in response.aiter_bytes():
+                            written += len(chunk)
+                            if max_bytes is not None and written > max_bytes:
+                                too_large = True
+                                break
+                            fh.write(chunk)
+        except httpx.RequestError as e:
+            dest_path.unlink(missing_ok=True)
+            raise DSpaceAPIError(f"Download of bitstream {uuid} failed: {e}") from e
+        self._last_request_time = time.time()
+        if status_code >= 400:
+            raise DSpaceAPIError(
+                f"GET {url} failed with status {status_code}: {error_body}",
+                status_code=status_code,
+            )
+        if too_large:
+            dest_path.unlink(missing_ok=True)
+            raise DSpaceClientError(f"Bitstream {uuid} is larger than the {max_bytes}-byte limit")
+        return written
+
+    async def _uri_list_request(
+        self, method: str, endpoint: str, uri: str, *, method_name: str
+    ) -> httpx.Response:
+        """Send a ``text/uri-list`` request (used for linking resources, e.g. moving a bitstream)."""
+        self._require_auth(method_name)
+        self.validator.validate_before_call(
+            method_name=method_name, endpoint=endpoint, operation=method
+        )
+        url = f"{self.base_url}/server/api/{endpoint}"
+        try:
+            response = await self._http.request(
+                method, url, headers=self._direct_headers("text/uri-list"), content=uri
+            )
+        except httpx.RequestError as e:
+            raise DSpaceAPIError(f"{method} {url} failed: {e}") from e
+        self._last_request_time = time.time()
+        if response.status_code >= 400:
+            raise DSpaceAPIError(
+                f"{method} {url} failed with status {response.status_code}: {response.text[:500]}",
+                status_code=response.status_code,
+            )
+        return response
+
+    async def move_bitstream(self, bitstream_uuid: str, bundle_uuid: str) -> None:
+        """Move a bitstream to another bundle of the same item (PUT core/bitstreams/{uuid}/bundle)."""
+        await self._uri_list_request(
+            "PUT",
+            f"core/bitstreams/{bitstream_uuid}/bundle",
+            f"{self.base_url}/server/api/core/bundles/{bundle_uuid}",
+            method_name="move_bitstream",
+        )
+
+    async def get_primary_bitstream(self, bundle_uuid: str) -> dict | None:
+        """The bundle's primary bitstream, or ``None`` when it has none."""
+        response = await self._request(
+            "GET",
+            f"core/bundles/{bundle_uuid}/primaryBitstream",
+            method_name="get_primary_bitstream",
+        )
+        if response.status_code == 204 or not response.content:
+            return None
+        result: dict = response.json()
+        return result
+
+    async def set_primary_bitstream(self, bundle_uuid: str, bitstream_uuid: str) -> None:
+        """Make a bitstream its bundle's primary bitstream (replacing any current one)."""
+        current = await self.get_primary_bitstream(bundle_uuid)
+        await self._uri_list_request(
+            "PUT" if current else "POST",
+            f"core/bundles/{bundle_uuid}/primaryBitstream",
+            f"{self.base_url}/server/api/core/bitstreams/{bitstream_uuid}",
+            method_name="set_primary_bitstream",
+        )
+
+    async def anonymous_can_download(self, bitstream_uuid: str) -> bool:
+        """
+        Can an anonymous visitor download this bitstream right now?
+
+        Asks the ``canDownload`` authorization feature *without* credentials, on a separate
+        unauthenticated connection: a logged-in request would evaluate the current user
+        instead. Embargoed and restricted files return False.
+        """
+        self.validator.validate_before_call(
+            method_name="anonymous_can_download",
+            endpoint="authz/authorizations/search/object",
+            operation="GET",
+        )
+        params = {
+            "uri": f"{self.base_url}/server/api/core/bitstreams/{bitstream_uuid}",
+            "feature": "canDownload",
+        }
+        url = f"{self.base_url}/server/api/authz/authorizations/search/object"
+        headers = {"User-Agent": self._http.headers.get("User-Agent", "dspace-python-client")}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as anonymous:
+                response = await anonymous.get(url, params=params)
+        except httpx.RequestError as e:
+            raise DSpaceAPIError(f"GET {url} failed: {e}") from e
+        if response.status_code == 204:
+            return False
+        if response.status_code >= 400:
+            raise DSpaceAPIError(
+                f"GET {url} failed with status {response.status_code}: {response.text[:300]}",
+                status_code=response.status_code,
+            )
+        data: dict = response.json()
+        return bool((data.get("_embedded") or {}).get("authorizations"))
+
+    # ========== Paging helper ==========
+
+    async def iter_pages(
+        self,
+        endpoint: str,
+        embedded_key: str,
+        params: dict | None = None,
+        *,
+        method_name: str,
+        page_size: int = 50,
+    ) -> AsyncIterator[dict]:
+        """
+        Yield every object of a paginated HAL list endpoint, page by page.
+
+        Args:
+            endpoint: API endpoint (e.g. ``"submission/workspaceitems"``)
+            embedded_key: Key under ``_embedded`` holding the page's objects
+            params: Extra query parameters (``page``/``size`` are managed here)
+            method_name: Public method name for the version compatibility check
+            page_size: Objects per request
+        """
+        page = 0
+        while True:
+            query = dict(params or {})
+            query.update({"page": page, "size": page_size})
+            response = await self._request("GET", endpoint, params=query, method_name=method_name)
+            if response.status_code == 204:
+                return
+            data: dict = response.json()
+            for obj in (data.get("_embedded") or {}).get(embedded_key, []):
+                yield obj
+            total_pages = (data.get("page") or {}).get("totalPages", 0)
+            page += 1
+            if page >= total_pages:
+                return
+
+    # ========== Authorization ==========
+
+    async def get_authn_status(self) -> dict:
+        """Get the authentication status of the current session (GET authn/status)."""
+        response = await self._request("GET", "authn/status", method_name="get_authn_status")
+        result: dict = response.json()
+        return result
+
+    async def get_current_eperson(self) -> dict | None:
+        """Return the EPerson of the logged-in user, or ``None`` when anonymous."""
+        status = await self.get_authn_status()
+        if not status.get("authenticated"):
+            return None
+        eperson = (status.get("_embedded") or {}).get("eperson")
+        if eperson:
+            result: dict = eperson
+            return result
+        href = ((status.get("_links") or {}).get("eperson") or {}).get("href", "")
+        uuid = href.rstrip("/").rsplit("/", 1)[-1] if href else ""
+        return await self.get_eperson(uuid) if uuid else None
+
+    async def get_site(self) -> dict:
+        """Get the repository's Site object (GET core/sites; there is exactly one)."""
+        response = await self._request("GET", "core/sites", method_name="get_site")
+        data: dict = response.json()
+        sites = (data.get("_embedded") or {}).get("sites") or []
+        if not sites:
+            raise DSpaceClientError("The server returned no Site object at core/sites")
+        site: dict = sites[0]
+        return site
+
+    async def has_feature(self, object_uri: str, feature: str, eperson_uuid: str) -> bool:
+        """
+        Check an authorization feature for an EPerson on one object.
+
+        GET authz/authorizations/search/object?uri=...&feature=...&eperson=...
+
+        Args:
+            object_uri: Full REST URI of the object, e.g. ``https://host/server/api/core/sites/<uuid>``
+            feature: Feature name, e.g. ``"administratorOf"``
+            eperson_uuid: EPerson to evaluate (normally the logged-in user)
+        """
+        response = await self._request(
+            "GET",
+            "authz/authorizations/search/object",
+            params={"uri": object_uri, "feature": feature, "eperson": eperson_uuid},
+            method_name="has_feature",
+        )
+        if response.status_code == 204:
+            return False
+        data: dict = response.json()
+        return bool((data.get("_embedded") or {}).get("authorizations"))
+
+    async def is_site_admin(self, eperson_uuid: str) -> bool:
+        """True if the EPerson is a site (repository-wide) administrator."""
+        site = await self.get_site()
+        site_uri = f"{self.base_url}/server/api/core/sites/{site['uuid']}"
+        return await self.has_feature(site_uri, "administratorOf", eperson_uuid)
+
+    # ========== Submission and workflow ==========
+
+    def iter_workspace_items(self, submitter_uuid: str | None = None) -> AsyncIterator[dict]:
+        """
+        Yield workspace items (in-progress submissions), with their item embedded.
+
+        Args:
+            submitter_uuid: Only this submitter's workspace items
+                (``search/findBySubmitter``). ``None`` for all workspace items in the
+                repository, which only a site administrator may list.
+        """
+        if submitter_uuid:
+            return self.iter_pages(
+                "submission/workspaceitems/search/findBySubmitter",
+                "workspaceitems",
+                {"uuid": submitter_uuid, "embed": "item"},
+                method_name="iter_workspace_items",
+            )
+        return self.iter_pages(
+            "submission/workspaceitems",
+            "workspaceitems",
+            {"embed": "item"},
+            method_name="iter_workspace_items",
+        )
+
+    def iter_workflow_items(self) -> AsyncIterator[dict]:
+        """Yield every workflow item in the repository, with its item embedded (admin only)."""
+        return self.iter_pages(
+            "workflow/workflowitems",
+            "workflowitems",
+            {"embed": "item"},
+            method_name="iter_workflow_items",
+        )
+
+    def iter_pool_tasks(self, eperson_uuid: str) -> AsyncIterator[dict]:
+        """Yield the pool tasks available to an EPerson, with workflow item and item embedded."""
+        return self.iter_pages(
+            "workflow/pooltasks/search/findByUser",
+            "pooltasks",
+            {"uuid": eperson_uuid, "embed": "workflowitem/item"},
+            method_name="iter_pool_tasks",
+        )
+
+    def iter_claimed_tasks(self, eperson_uuid: str) -> AsyncIterator[dict]:
+        """Yield the tasks an EPerson has claimed, with workflow item and item embedded."""
+        return self.iter_pages(
+            "workflow/claimedtasks/search/findByUser",
+            "claimedtasks",
+            {"uuid": eperson_uuid, "embed": "workflowitem/item"},
+            method_name="iter_claimed_tasks",
+        )
+
+    # ========== Metadata registry ==========
+
+    async def find_metadata_schema(self, prefix: str) -> dict | None:
+        """Return the metadata schema with this prefix (e.g. ``"local"``), or ``None``."""
+        async for schema in self.iter_pages(
+            "core/metadataschemas",
+            "metadataschemas",
+            method_name="find_metadata_schema",
+            page_size=100,
+        ):
+            if schema.get("prefix") == prefix:
+                return schema
+        return None
+
+    async def find_metadata_field(self, name: str) -> dict | None:
+        """
+        Return the registry field for a fully qualified name, or ``None``.
+
+        Args:
+            name: ``schema.element`` or ``schema.element.qualifier``
+        """
+        response = await self._request(
+            "GET",
+            "core/metadatafields/search/byFieldName",
+            params={"exactName": name},
+            method_name="find_metadata_field",
+        )
+        if response.status_code == 204:
+            return None
+        data: dict = response.json()
+        fields = (data.get("_embedded") or {}).get("metadatafields") or []
+        return fields[0] if fields else None
+
+    async def create_metadata_field(
+        self,
+        schema_id: int,
+        element: str,
+        qualifier: str | None = None,
+        scope_note: str | None = None,
+    ) -> dict:
+        """
+        Create a metadata field in the registry (POST core/metadatafields?schemaId=).
+
+        Requires a site administrator. Deleting the field later also deletes every
+        value stored in it.
+        """
+        body: dict[str, Any] = {"element": element, "qualifier": qualifier}
+        if scope_note:
+            body["scopeNote"] = scope_note
+        response = await self._request(
+            "POST",
+            "core/metadatafields",
+            json_data=body,
+            params={"schemaId": schema_id},
+            method_name="create_metadata_field",
+        )
+        result: dict = response.json()
+        return result
+
     # ========== Statistics ==========
 
     async def create_item_view(
@@ -993,6 +1389,7 @@ class DSpaceClient:
         page: int = 0,
         size: int = 20,
         configuration: str | None = None,
+        scope: str | None = None,
     ) -> dict:
         """
         Search for items using the discovery endpoint.
@@ -1005,6 +1402,7 @@ class DSpaceClient:
             page: Page number
             size: Page size (max 100)
             configuration: Discovery configuration name (e.g., "workflow")
+            scope: UUID of a community or collection to limit the search to
 
         Returns:
             Search results with embedded items
@@ -1022,6 +1420,9 @@ class DSpaceClient:
 
         if configuration:
             params["configuration"] = configuration
+
+        if scope:
+            params["scope"] = scope
 
         if filters:
             for filter_name, filter_value in filters.items():

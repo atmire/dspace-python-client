@@ -53,3 +53,7 @@ access-load-reports/
 *-access-load-*-extended.md
 *-access-load-*-raw.json
 *-access-load-*-requests.jsonl
+
+# pdf_accessibility example (results, CSVs, planned patches, phase-0 corpus)
+pdf-a11y-reports/
+examples/pdf_accessibility/corpus/
